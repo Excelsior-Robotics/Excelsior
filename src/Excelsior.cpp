@@ -15,40 +15,40 @@ Excelsior::Excelsior() : display(128, 64, &Wire2) , bno055(55,0x28,&Wire2){
   pinMode(_pinout[_sensShift][2], INPUT);     //internal Button
 
   for(int i = 0; i < _maxMotors; i++){
-    pinMode(_pinout[i][0],OUTPUT);  //functions as digital port   (direction)
-    pinMode(_pinout[i][1],OUTPUT);  //functions as digital port   (direction)
-    pinMode(_pinout[i][2],OUTPUT);  //functions as PWM port       (speed)
+    pinMode(_pinout[i][0],OUTPUT);      //functions as digital port   (direction)
+    pinMode(_pinout[i][1],OUTPUT);      //functions as digital port   (direction)
+    pinMode(_pinout[i][2],OUTPUT);      //functions as PWM port       (speed)
   }
 
-  delay(100);                   // This delay is needed to let the display to initialize
+  delay(100);                           // This delay is needed to let the display to initialize
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // Initialize display with the I2C address of 0x3C
-  display.clearDisplay();       // Clear the buffer
-  display.setTextColor(WHITE);  // Set color of the text
-  display.setRotation(0);       // Set orientation. Goes from 0, 1, 2 or 3
-  display.setTextWrap(true);    // By default, long lines of text are set to automatically “wrap” back to the leftmost column.
-                                // To override this behavior (so text will run off the right side of the display - useful for
-                                // scrolling marquee effects), use setTextWrap(false). The normal wrapping behavior is restored
-                                // with setTextWrap(true).
-  display.dim(0);  //Set brightness (0 is maximun and 1 is a little dim)
+  display.clearDisplay();               // Clear the buffer
+  display.setTextColor(SSD1306_WHITE);  // Set color of the text
+  display.setRotation(0);               // Set orientation. Goes from 0, 1, 2 or 3
+  display.setTextWrap(true);            // By default, long lines of text are set to automatically “wrap” back to the leftmost column.
+                                        // To override this behavior (so text will run off the right side of the display - useful for
+                                        // scrolling marquee effects), use setTextWrap(false). The normal wrapping behavior is restored
+                                        // with setTextWrap(true).
+  display.dim(0);                       //Set brightness (0 is maximun and 1 is a little dim)
 
   Wire2.begin();
   if(!bno055.begin()){
-    _DisplayError(-1,0);        //Error message: Gyro not found
+    _displayError(-1,0);        //Error message: Gyro not found
   }
   delay(100);                   //short wait, to initialize the bno055
-  GyroReset();
-  DisplayAktualisieren(-1);     //Shows default display
+  gyroReset();
+  displayUpdate(-1);     //Shows default display
 }
 
 //------SENSOR SETUP------------------
-void Excelsior::SensorSetup(int port, int type){           //Digital- / Analog-Ports
+void Excelsior::sensorSetup(int port, int type){           //Digital- / Analog-Ports
   if(port < 1 || port > _maxSensors){
-    _DisplayError(-2,port);      //ERROR: SensorPORT not defined
-  }else if(type < LICHT || type > INFRAROT){
-    _DisplayError(-3,type);      //ERROR: SensorTYPE not defined
+    _displayError(-2,port);      //ERROR: SensorPORT not defined
+  }else if(type < LIGHT || type > INFRARED){
+    _displayError(-3,type);      //ERROR: SensorTYPE not defined
   }else{
-      _sensors[port - 1] = type;                                                                                            //LIGHT       LIGHT_NXT       TOUCH_NXT       TOUCH_EV3      INFRAROT      KABLECOLOR  (GREEN -> 5V | RED -> GND)
-      pinMode(_pinout[_sensShift + port][0],(type == TAST_EV3 || type == INFRAROT)? INPUT:OUTPUT);               //Red         NULL            NULL            Signal         Signal        BLUE
+      _sensors[port - 1] = type;                                                                                            //LIGHT       LIGHT_NXT       TOUCH_NXT       TOUCH_EV3      INFRARED      KABLECOLOR  (GREEN -> 5V | RED -> GND)
+      pinMode(_pinout[_sensShift + port][0],(type == TOUCH_EV3 || type == INFRARED)? INPUT:OUTPUT);               //Red         NULL            NULL            Signal         Signal        BLUE
       pinMode(_pinout[_sensShift + port][1],OUTPUT);                                                             //Green       Led             NULL            NULL                         YELLOW
       pinMode(_pinout[_sensShift + port][2],OUTPUT);                                                             //Blue        GND             GND             NULL                         BLACK
       pinMode(_pinout[_sensShift + port][3],INPUT_PULLUP);                                                       //Signal      Signal          Signal          NULL                         WEIß
@@ -59,15 +59,15 @@ void Excelsior::SensorSetup(int port, int type){           //Digital- / Analog-P
   }
 }
 
-void Excelsior::LichtVerzoegerung(int delay){
+void Excelsior::lightDelay(int delay){
   _lightDelay = delay;
 }
 //------DRIVING MOTORS------
-void Excelsior::Motor(int port, int dir){
+void Excelsior::motor(int port, int dir){
   if(port < MOTOR_A || port >= (MOTOR_A + _maxMotors)){
-    _DisplayError(-4,port);     //ERROR: MotorPORT not defined
+    _displayError(-5,port);     //ERROR: MotorPORT not defined
   }else if(dir < -255 || dir > 255){
-    _DisplayError(-5,dir);      //ERROR: Speed not defined
+    _displayError(-6,dir);      //ERROR: Speed not defined
   }else{
     _motorSpeeds[port - MOTOR_A] = dir;
     digitalWrite(_pinout[port - MOTOR_A][0], dir < 0? HIGH:LOW);   //if dir == 0, then both go LOW (motor off)
@@ -86,38 +86,42 @@ void Excelsior::Motor(int port, int dir){
 }
 
 //------READING SENSORS------
-bool Excelsior::Knopf(){
+bool Excelsior::button(){
   _sensorValues[_maxSensors + 6] = !digitalRead(_pinout[_sensShift][2]);
   _displayOutline = _sensorValues[_maxSensors + 6];
   return _sensorValues[_maxSensors + 6];
 }
 
-int Excelsior::SensorWert(int port){
+int Excelsior::sensorRead(int port){
   if(port < 1 || port > _maxSensors){            //looks if the given port is not part of the possible ports
-    _DisplayError(-2,port);                      //ERROR: SensorPORT not defined
+    _displayError(-2,port);                      //ERROR: SensorPORT not defined
+  }else if(_sensors[port] == -1){
+    _displayError(-4,port);                      //ERROR: Sensor not Initialised
   }
   else{
-    if(_sensors[port - 1] == TAST_EV3){
+    if(_sensors[port - 1] == TOUCH_EV3){
       _sensorValues[port - 1] =  map(digitalRead(_pinout[_sensShift + port][0]),0,2,1,0);       //0 and 1 have to be flipped because of different sensor funciton compared to the TOUCH_NXT
       return _sensorValues[port - 1];
-    }else if(_sensors[port - 1] == TAST_NXT){
+    }else if(_sensors[port - 1] == TOUCH_NXT){
       _sensorValues[port - 1] = !digitalRead(_pinout[_sensShift + port][3]);
       return _sensorValues[port - 1];
-    }else if(_sensors[port - 1] == INFRAROT){
+    }else if(_sensors[port - 1] == INFRARED){
       int pulse = pulseIn(_pinout[_sensShift + port][3], HIGH, 20000);                                    //timeout in microseconds
       _sensorValues[port - 1] = min(2000, max(0, 2 * (pulse - 1000)));                                               //2000 mm is the maximum that will be returned, anything lower will be calculated
       return _sensorValues[port - 1];
     }
-    return SensorWert(port, AUS);
+    return sensorRead(port, OFF);
   }
   return -1;
 }
 
-int Excelsior::SensorWert(int port, int color){
+int Excelsior::sensorRead(int port, int color){
   if(port < 1 || port > _maxSensors){            //looks if the given port is not part of the possible ports
-    _DisplayError(-2,port);                      //ERROR: SensorPORT not defined
+    _displayError(-2,port);                      //ERROR: SensorPORT not defined
+  }else if(_sensors[port] == -1){
+    _displayError(-4,port);                      //ERROR: Sensor not Initialised
   }else{
-    if(_sensors[port - 1] == LICHT_NXT){
+    if(_sensors[port - 1] == LIGHT_NXT){
       if(color)
         digitalWrite(_pinout[_sensShift + port][1], HIGH);
       else
@@ -125,20 +129,22 @@ int Excelsior::SensorWert(int port, int color){
       _sensorValues[port - 1] = map(analogRead(_pinout[_sensShift + port][3]),0,1024,1024,0);    //sensorrange gets flipped so that low values correspond to black
       return _sensorValues[port - 1];
     }
-    return SensorWert(port, color, false);
+    return sensorRead(port, color, false);
   }
   return -1;
 }
 
-int Excelsior::SensorWert(int port, int color, bool percent){
+int Excelsior::sensorRead(int port, int color, bool percent){
   if(port < 1 || port > _maxSensors){            //looks if the given port is not part of the possible ports
-    _DisplayError(-2,port);                      //ERROR: SensorPORT not defined
+    _displayError(-2,port);                      //ERROR: SensorPORT not defined
+  }else if(_sensors[port] == -1){
+    _displayError(-4,port);                      //ERROR: Sensor not Initialised
   }else{
-    if(_sensors[port - 1] == LICHT){
-      _sensorValues[port - 1] = percent? _LightSensorPercent(port,color) : _LightSensorValue(port,color);
+    if(_sensors[port - 1] == LIGHT){
+      _sensorValues[port - 1] = percent? _lightSensorPercent(port,color) : _lightSensorValue(port,color);
       return _sensorValues[port - 1];
-    }else if(_sensors[port - 1] == LICHT_NXT){
-      _sensorValues[port - 1] = percent? map(SensorWert(port,color),0,1024,0,100) : SensorWert(port,color);
+    }else if(_sensors[port - 1] == LIGHT_NXT){
+      _sensorValues[port - 1] = percent? map(sensorRead(port,color),0,1024,0,100) : sensorRead(port,color);
       return _sensorValues[port - 1];
     }
     return -1;
@@ -146,27 +152,27 @@ int Excelsior::SensorWert(int port, int color, bool percent){
   return -1;
 }
 
-int Excelsior::_LightSensorValue(int port, int color){             //gets the "raw" sensor-value
+int Excelsior::_lightSensorValue(int port, int color){             //gets the "raw" sensor-value
   switch(color){                                       //defines what color the sensor glows
-    case WEISS:
+    case WHITE:
       digitalWrite(_pinout[_sensShift + port][0], HIGH);
       digitalWrite(_pinout[_sensShift + port][1], HIGH);
       digitalWrite(_pinout[_sensShift + port][2], HIGH);
       delay(_lightDelay);                               //small delay to make sure the colors have changed
       return (1024 - analogRead(_pinout[_sensShift + port][3]));       //subtracts sensor-value from the maximum value returned by analogRead + 1 --> before: WHITE(0 - 1023)BLACK ; after: WHITE(1024 - 1)BLACK
-    case ROT:
+    case RED:
       digitalWrite(_pinout[_sensShift + port][0], HIGH);
       digitalWrite(_pinout[_sensShift + port][1], LOW);
       digitalWrite(_pinout[_sensShift + port][2], LOW);
       delay(_lightDelay);
       return (1024 - analogRead(_pinout[_sensShift + port][3]));
-    case GRUEN:
+    case GREEN:
       digitalWrite(_pinout[_sensShift + port][0], LOW);
       digitalWrite(_pinout[_sensShift + port][1], HIGH);
       digitalWrite(_pinout[_sensShift + port][2], LOW);
       delay(_lightDelay);
       return (1024 - analogRead(_pinout[_sensShift + port][3]));
-    case BLAU:
+    case BLUE:
       digitalWrite(_pinout[_sensShift + port][0], LOW);
       digitalWrite(_pinout[_sensShift + port][1], LOW);
       digitalWrite(_pinout[_sensShift + port][2], HIGH);
@@ -184,66 +190,66 @@ int Excelsior::_LightSensorValue(int port, int color){             //gets the "r
       digitalWrite(_pinout[_sensShift + port][2], HIGH);
       delay(_lightDelay);
       return (1024 - analogRead(_pinout[_sensShift + port][3]));
-    case GELB:
+    case YELLOW:
       digitalWrite(_pinout[_sensShift + port][0], HIGH);
       digitalWrite(_pinout[_sensShift + port][1], HIGH);
       digitalWrite(_pinout[_sensShift + port][2], LOW);
       delay(_lightDelay);
       return (1024 - analogRead(_pinout[_sensShift + port][3]));
-    case AUS:
+    case OFF:
       digitalWrite(_pinout[_sensShift + port][0], LOW);
       digitalWrite(_pinout[_sensShift + port][1], LOW);
       digitalWrite(_pinout[_sensShift + port][2], LOW);
       delay(_lightDelay);
       return (1024 - analogRead(_pinout[_sensShift + port][3]));
-    default: _DisplayError(-6,color); return -1;
+    default: _displayError(-7,color); return -1;
   }
 }
 
-long Excelsior::_LightSensorPercent(int port, int color){
-  int _red,_green,_blue,_cyan,_magenta,_yellow;             // "__" to avoid possible ROTefinitions in the main programm
+long Excelsior::_lightSensorPercent(int port, int color){
+  int _red,_green,_blue,_cyan,_magenta,_yellow;             // "__" to avoid possible Redefinitions in the main programm
   switch(color){
-    case AUS:
-      return map(_LightSensorValue(port,AUS),0,1024,0,100);
-    case WEISS:
-      return map(_LightSensorValue(port,WEISS),0,1024,0,100);
-    case ROT:
-      _red   = _LightSensorValue(port,ROT);
-      _green = _LightSensorValue(port,GRUEN);
-      _blue  = _LightSensorValue(port,BLAU);
-      _LightSensorValue(port,AUS);                 //turns of the light, so that it doesn't interfere with neighbouring sensors
+    case OFF:
+      return map(_lightSensorValue(port,OFF),0,1024,0,100);
+    case WHITE:
+      return map(_lightSensorValue(port,WHITE),0,1024,0,100);
+    case RED:
+      _red   = _lightSensorValue(port,RED);
+      _green = _lightSensorValue(port,GREEN);
+      _blue  = _lightSensorValue(port,BLUE);
+      _lightSensorValue(port,OFF);                 //turns of the light, so that it doesn't interfere with neighbouring sensors
       return   _red * 100L / (_red + _green + _blue);         //the L defines the output as the datatype long, allowing bigger values
-    case GRUEN:
-      _red   = _LightSensorValue(port,ROT);
-      _green = _LightSensorValue(port,GRUEN);
-      _blue  = _LightSensorValue(port,BLAU);
-      _LightSensorValue(port,AUS);                 //turns of the light, so that it doesn't interfere with neighbouring sensors
+    case GREEN:
+      _red   = _lightSensorValue(port,RED);
+      _green = _lightSensorValue(port,GREEN);
+      _blue  = _lightSensorValue(port,BLUE);
+      _lightSensorValue(port,OFF);                 //turns of the light, so that it doesn't interfere with neighbouring sensors
       return   _green * 100L / (_red + _green + _blue);
-    case BLAU:
-      _red   = _LightSensorValue(port,ROT);
-      _green = _LightSensorValue(port,GRUEN);
-      _blue  = _LightSensorValue(port,BLAU);
-      _LightSensorValue(port,AUS);                 //turns of the light, so that it doesn't interfere with neighbouring sensors
+    case BLUE:
+      _red   = _lightSensorValue(port,RED);
+      _green = _lightSensorValue(port,GREEN);
+      _blue  = _lightSensorValue(port,BLUE);
+      _lightSensorValue(port,OFF);                 //turns of the light, so that it doesn't interfere with neighbouring sensors
       return   _blue * 100L / (_red + _green + _blue);
     case CYAN:
-      _cyan     = _LightSensorValue(port,CYAN);
-      _magenta  = _LightSensorValue(port,MAGENTA);
-      _yellow   = _LightSensorValue(port,GELB);
-      _LightSensorValue(port,AUS);                 //turns of the light, so that it doesn't interfere with neighbouring sensors
+      _cyan     = _lightSensorValue(port,CYAN);
+      _magenta  = _lightSensorValue(port,MAGENTA);
+      _yellow   = _lightSensorValue(port,YELLOW);
+      _lightSensorValue(port,OFF);                 //turns of the light, so that it doesn't interfere with neighbouring sensors
       return   _cyan * 100L / (_cyan + _magenta + _yellow);
     case MAGENTA:
-      _cyan     = _LightSensorValue(port,CYAN);
-      _magenta  = _LightSensorValue(port,MAGENTA);
-      _yellow   = _LightSensorValue(port,GELB);
-      _LightSensorValue(port,AUS);                 //turns of the light, so that it doesn't interfere with neighbouring sensors
+      _cyan     = _lightSensorValue(port,CYAN);
+      _magenta  = _lightSensorValue(port,MAGENTA);
+      _yellow   = _lightSensorValue(port,YELLOW);
+      _lightSensorValue(port,OFF);                 //turns of the light, so that it doesn't interfere with neighbouring sensors
       return   _magenta * 100L / (_cyan + _magenta + _yellow);
-    case GELB:
-      _cyan     = _LightSensorValue(port,CYAN);
-      _magenta  = _LightSensorValue(port,MAGENTA);
-      _yellow   = _LightSensorValue(port,GELB);
-      _LightSensorValue(port,AUS);                 //turns of the light, so that it doesn't interfere with neighbouring sensors
+    case YELLOW:
+      _cyan     = _lightSensorValue(port,CYAN);
+      _magenta  = _lightSensorValue(port,MAGENTA);
+      _yellow   = _lightSensorValue(port,YELLOW);
+      _lightSensorValue(port,OFF);                 //turns of the light, so that it doesn't interfere with neighbouring sensors
       return   _yellow * 100L / (_cyan + _magenta + _yellow);
-    default: _DisplayError(-6,color); return -1;
+    default: _displayError(-7,color); return -1;
   }
 }
 
@@ -260,7 +266,7 @@ void Excelsior::_getOrientation(double *vec){
   return;
 }
 
-int Excelsior::GyroWert(int axis){    //0,1,2 --> The returned and displayed Values ;  3,4,5 --> The offset of the actual Value and the desired Value
+int Excelsior::gyroRead(int axis){    //0,1,2 --> The returned and displayed Values ;  3,4,5 --> The offset of the actual Value and the desired Value
   double orientation[3];
   _getOrientation(orientation);      //fetches the orientation data of the Gyroscopesensor
 
@@ -275,19 +281,11 @@ int Excelsior::GyroWert(int axis){    //0,1,2 --> The returned and displayed Val
 
   if(axis >= GYRO_X && axis <= GYRO_Z)                             //looks if axis is between X and Z
     return _sensorValues[_maxSensors + axis - GYRO_X];
-  _DisplayError(-7,axis);
+  _displayError(-8,axis);
   return -1;
 }
 
-void Excelsior::GyroReset(){
-  GyroReset(-1);
-}
-
-void Excelsior::GyroReset(int axis){
-  GyroReset(axis,false);
-}
-
-void Excelsior::GyroReset(int axis, bool toOriginal){          //Resets the Gyroscope Values (if toOriginal --> reverts back to the actual gyroscope Values by setting the offsets to 0)
+void Excelsior::gyroReset(int axis, bool toOriginal){          //Resets the Gyroscope Values (if toOriginal --> reverts back to the actual gyroscope Values by setting the offsets to 0)
   double orientation[3];
   _getOrientation(orientation);      //fetches the orientation data of the Gyroscopesensor
 
@@ -313,53 +311,36 @@ void Excelsior::GyroReset(int axis, bool toOriginal){          //Resets the Gyro
 }
 
 //------OLED DISPLAY------------------
-void Excelsior::_DisplayError(int error){
-  _DisplayError(error,0);
-}
-void Excelsior::_DisplayError(int error, int input){
+void Excelsior::_displayError(int error, int input){
   _errorVariables.push_back(input);
-  _DisplayError(error,_errorVariables);
+  _displayError(error,_errorVariables);
 }
-void Excelsior::_DisplayError(int error, _VecInt10 & variables){
+
+void Excelsior::_displayError(int error, _VecInt10 & variables){
   String errorMessage = "";
   int layout[8];
   switch(error){
     case -1:  errorMessage = (String) "Gyrosensor \n   nicht \n gefunden!"; break;
     case -2:  errorMessage = (String) "Sensorport \n " + variables[0] + " nicht \n definiert"; break;
     case -3:  errorMessage = (String) " Sensorart \n " + variables[0] + " nicht \n definiert"; break;
-    case -4:  errorMessage = (String) " Motorport \n " + variables[0] + " nicht \n definiert"; break;
-    case -5:  errorMessage = (String) "Geschwin-\ndigkeit " + variables[0] + "\nundefiniert"; break;
-    case -6:  errorMessage = (String) "Lichtfarbe\n " + variables[0] + " nicht \n definiert"; break;
-    case -7:  errorMessage = (String) "Gyro-Achse\n " + variables[0] + " nicht \n definiert"; break;
-    case -8:  errorMessage = (String) "DisplayX/Y\n (" + variables[0] + "," + variables[1] + ")\nundefiniert"; break;
+    case -4:  errorMessage = (String) "Sensorport \n " + variables[0] + " nicht ini-\ntialisiert"; break;
+    case -5:  errorMessage = (String) " Motorport \n " + variables[0] + " nicht \n definiert"; break;
+    case -6:  errorMessage = (String) "Geschwin-\ndigkeit " + variables[0] + "\nundefiniert"; break;
+    case -7:  errorMessage = (String) "Lichtfarbe\n " + variables[0] + " nicht \n definiert"; break;
+    case -8:  errorMessage = (String) "Gyro-Achse\n " + variables[0] + " nicht \n definiert"; break;
+    case -9:  errorMessage = (String) "DisplayX/Y\n (" + variables[0] + "," + variables[1] + ")\nundefiniert"; break;
     default:  errorMessage = (String) "   Nicht\ndefinierter\n   Fehler"; break;
   }
   _errorVariables.clear();
-  DisplayAktualisieren(layout,errorMessage);
+  displayUpdate(layout,errorMessage);
 }
 
-void Excelsior::DA(){
-  DisplayAktualisieren(0);
-}
-
-void Excelsior::DisplayAktualisieren(){
-  DisplayAktualisieren(0);
-}
-
-void Excelsior::DA(int layout1, int layout2, int layout3, int layout4, int layout5, int layout6, int layout7, int layout8){
-  DisplayAktualisieren(layout1,layout2,layout3,layout4,layout5,layout6,layout7,layout8);
-}
-
-void Excelsior::DisplayAktualisieren(int layout1, int layout2, int layout3, int layout4, int layout5, int layout6, int layout7, int layout8){
+void Excelsior::displayUpdate(int layout1, int layout2, int layout3, int layout4, int layout5, int layout6, int layout7, int layout8){
   int layout[] =  {layout1,layout2,layout3,layout4,layout5,layout6,layout7,layout8};
-  DisplayAktualisieren(layout, "");
+  displayUpdate(layout, "");
 }
 
-void Excelsior::DA(int type){
-  DisplayAktualisieren(type);
-}
-
-void Excelsior::DisplayAktualisieren(int type){     //definiert presets
+void Excelsior::displayUpdate(int type){     //definiert presets
   int layout[8];
   switch(type){
     case 0:                         //shows all sensors
@@ -394,14 +375,10 @@ void Excelsior::DisplayAktualisieren(int type){     //definiert presets
     default:                        //default displays "Excelsior"
       layout[0] = -1;      break;
   }
-  DisplayAktualisieren(layout, "");
+  displayUpdate(layout, "");
 }
 
-void Excelsior::DA(int (&layout)[8], String errorMessage){
-  DisplayAktualisieren(layout,errorMessage);
-}
-
-void Excelsior::DisplayAktualisieren(int (&layout)[8], String errorMessage){          //array of length 8 that determines the order of displayed entries (only takes arrays of this length)
+void Excelsior::displayUpdate(int (&layout)[8], String errorMessage){          //array of length 8 that determines the order of displayed entries (only takes arrays of this length)
   display.clearDisplay();                                        // Clear the display so we can refresh
   display.setFont(&FreeMono9pt7b);                               // Set a custom font
 
@@ -412,7 +389,7 @@ void Excelsior::DisplayAktualisieren(int (&layout)[8], String errorMessage){    
     display.println(errorMessage);
 
   }else if(layout[0] == -1){                                     //-1 at the first index displays logo
-    display.drawBitmap(0,0, logo, 128, 64, WHITE);
+    display.drawBitmap(0,0, logo, 128, 64, SSD1306_WHITE);
 
   }else if(layout[0] == -2){                                     //-2 at the first index enables custom text
     display.setTextSize(0);
@@ -429,7 +406,7 @@ void Excelsior::DisplayAktualisieren(int (&layout)[8], String errorMessage){    
         continue;                                                //displays NOTHING if the entry is 0
 
       display.setTextSize(0);
-      display.drawRoundRect((i < 4)? 0:65,  0 + 16*(i % 4), 13, 15, 1, WHITE);
+      display.drawRoundRect((i < 4)? 0:65,  0 + 16*(i % 4), 13, 15, 1, SSD1306_WHITE);
       int positionBoxX = (i < 4)? 1:66;        //Shows the Character in the square Box
       int positionValueX = (i < 4)? 17:82;     //Shows the value after the Box
       int positionY = 12 + 16*(i % 4);
@@ -453,12 +430,12 @@ void Excelsior::DisplayAktualisieren(int (&layout)[8], String errorMessage){    
     }
   }
   if(_displayOutline){                                           //displays a outline to show if the button is pressed
-    display.drawRect(0, 0, 128, 64, WHITE);
+    display.drawRect(0, 0, 128, 64, SSD1306_WHITE);
   }
   if(_errorTriangle){                                            //displays an error-simbol in the top right corner of the display to indicate, that an errorMessagehas been shown
     display.setFont(&FreeMonoBold9pt7b);
     display.setTextSize(0);
-    display.drawTriangle(127,14,113,14,120,0,WHITE);
+    display.drawTriangle(127,14,113,14,120,0,SSD1306_WHITE);
     display.setCursor(115,12);
     display.println("!");
   }
@@ -467,24 +444,16 @@ void Excelsior::DisplayAktualisieren(int (&layout)[8], String errorMessage){    
     delay(1000);        //shows the error Message for longer
 }
 
-void Excelsior::DT(int x_, int y_, String s_){
-  DisplayText(x_,y_,s_);
-}
-
-void Excelsior::DisplayText(int x_, int y_, String s_){
+void Excelsior::displayText(int x_, int y_, String s_){
   if(x_ >= 0 && x_ < _DisplayX && y_ >= 0 && y_ < _DisplayY){
     _Display[x_][y_] = s_;
   }else{
     _errorVariables.push_back(x_);
     _errorVariables.push_back(y_);
-    _DisplayError(-8,_errorVariables);
+    _displayError(-9,_errorVariables);
   }
 }
 
-void Excelsior::DR(){
-  DisplayRand();
-}
-
-void Excelsior::DisplayRand(){
+void Excelsior::displayBorder(){
     _displayOutline = !_displayOutline;
 }

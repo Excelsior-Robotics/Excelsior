@@ -1,6 +1,7 @@
 # Excelsior
 <img src="Logo/Logo_small.jpg" alt="Logo" width="200"/>
-Excelsior - an Arduino library to enable easy use of the Excelsior-Brick
+
+## Excelsior - an Arduino library to enable easy use of the Excelsior-Brick
 
 ### Version 1.0.1
 - Added Infrared-Sensor compatability
@@ -60,3 +61,7 @@ Excelsior - an Arduino library to enable easy use of the Excelsior-Brick
 - Fixed Bug with C++ Vector
 ### Version 1.1.9
 - The default display is now the Excelsior Logo
+### Version 1.2.0
+- Error Message if an uninitialised Sensor is called
+- Functions are now all available in english
+
