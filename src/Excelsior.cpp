@@ -65,9 +65,9 @@ void Excelsior::LichtVerzoegerung(int delay){
 //------DRIVING MOTORS------
 void Excelsior::Motor(int port, int dir){
   if(port < MOTOR_A || port >= (MOTOR_A + _maxMotors)){
-    _DisplayError(-4,port);     //ERROR: MotorPORT not defined
+    _DisplayError(-5,port);     //ERROR: MotorPORT not defined
   }else if(dir < -255 || dir > 255){
-    _DisplayError(-5,dir);      //ERROR: Speed not defined
+    _DisplayError(-6,dir);      //ERROR: Speed not defined
   }else{
     _motorSpeeds[port - MOTOR_A] = dir;
     digitalWrite(_pinout[port - MOTOR_A][0], dir < 0? HIGH:LOW);   //if dir == 0, then both go LOW (motor off)
@@ -95,6 +95,8 @@ bool Excelsior::Knopf(){
 int Excelsior::SensorWert(int port){
   if(port < 1 || port > _maxSensors){            //looks if the given port is not part of the possible ports
     _DisplayError(-2,port);                      //ERROR: SensorPORT not defined
+  }else if(_sensors[port] == -1){
+    _DisplayError(-4,port);                      //ERROR: Sensor not Initialised
   }
   else{
     if(_sensors[port - 1] == TAST_EV3){
@@ -116,6 +118,8 @@ int Excelsior::SensorWert(int port){
 int Excelsior::SensorWert(int port, int color){
   if(port < 1 || port > _maxSensors){            //looks if the given port is not part of the possible ports
     _DisplayError(-2,port);                      //ERROR: SensorPORT not defined
+  }else if(_sensors[port] == -1){
+    _DisplayError(-4,port);                      //ERROR: Sensor not Initialised
   }else{
     if(_sensors[port - 1] == LICHT_NXT){
       if(color)
@@ -133,6 +137,8 @@ int Excelsior::SensorWert(int port, int color){
 int Excelsior::SensorWert(int port, int color, bool percent){
   if(port < 1 || port > _maxSensors){            //looks if the given port is not part of the possible ports
     _DisplayError(-2,port);                      //ERROR: SensorPORT not defined
+  }else if(_sensors[port] == -1){
+    _DisplayError(-4,port);                      //ERROR: Sensor not Initialised
   }else{
     if(_sensors[port - 1] == LICHT){
       _sensorValues[port - 1] = percent? _LightSensorPercent(port,color) : _LightSensorValue(port,color);
@@ -196,7 +202,7 @@ int Excelsior::_LightSensorValue(int port, int color){             //gets the "r
       digitalWrite(_pinout[_sensShift + port][2], LOW);
       delay(_lightDelay);
       return (1024 - analogRead(_pinout[_sensShift + port][3]));
-    default: _DisplayError(-6,color); return -1;
+    default: _DisplayError(-7,color); return -1;
   }
 }
 
@@ -243,7 +249,7 @@ long Excelsior::_LightSensorPercent(int port, int color){
       _yellow   = _LightSensorValue(port,GELB);
       _LightSensorValue(port,AUS);                 //turns of the light, so that it doesn't interfere with neighbouring sensors
       return   _yellow * 100L / (_cyan + _magenta + _yellow);
-    default: _DisplayError(-6,color); return -1;
+    default: _DisplayError(-7,color); return -1;
   }
 }
 
@@ -275,7 +281,7 @@ int Excelsior::GyroWert(int axis){    //0,1,2 --> The returned and displayed Val
 
   if(axis >= GYRO_X && axis <= GYRO_Z)                             //looks if axis is between X and Z
     return _sensorValues[_maxSensors + axis - GYRO_X];
-  _DisplayError(-7,axis);
+  _DisplayError(-8,axis);
   return -1;
 }
 
@@ -327,11 +333,12 @@ void Excelsior::_DisplayError(int error, _VecInt10 & variables){
     case -1:  errorMessage = (String) "Gyrosensor \n   nicht \n gefunden!"; break;
     case -2:  errorMessage = (String) "Sensorport \n " + variables[0] + " nicht \n definiert"; break;
     case -3:  errorMessage = (String) " Sensorart \n " + variables[0] + " nicht \n definiert"; break;
-    case -4:  errorMessage = (String) " Motorport \n " + variables[0] + " nicht \n definiert"; break;
-    case -5:  errorMessage = (String) "Geschwin-\ndigkeit " + variables[0] + "\nundefiniert"; break;
-    case -6:  errorMessage = (String) "Lichtfarbe\n " + variables[0] + " nicht \n definiert"; break;
-    case -7:  errorMessage = (String) "Gyro-Achse\n " + variables[0] + " nicht \n definiert"; break;
-    case -8:  errorMessage = (String) "DisplayX/Y\n (" + variables[0] + "," + variables[1] + ")\nundefiniert"; break;
+    case -4:  errorMessage = (String) "Sensorport \n " + variables[0] + " nicht ini-\ntialisiert"; break;
+    case -5:  errorMessage = (String) " Motorport \n " + variables[0] + " nicht \n definiert"; break;
+    case -6:  errorMessage = (String) "Geschwin-\ndigkeit " + variables[0] + "\nundefiniert"; break;
+    case -7:  errorMessage = (String) "Lichtfarbe\n " + variables[0] + " nicht \n definiert"; break;
+    case -8:  errorMessage = (String) "Gyro-Achse\n " + variables[0] + " nicht \n definiert"; break;
+    case -9:  errorMessage = (String) "DisplayX/Y\n (" + variables[0] + "," + variables[1] + ")\nundefiniert"; break;
     default:  errorMessage = (String) "   Nicht\ndefinierter\n   Fehler"; break;
   }
   _errorVariables.clear();
@@ -477,7 +484,7 @@ void Excelsior::DisplayText(int x_, int y_, String s_){
   }else{
     _errorVariables.push_back(x_);
     _errorVariables.push_back(y_);
-    _DisplayError(-8,_errorVariables);
+    _DisplayError(-9,_errorVariables);
   }
 }
 
