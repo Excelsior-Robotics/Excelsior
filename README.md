@@ -62,5 +62,5 @@
 ### Version 1.1.9
 - The default display is now the Excelsior Logo
 ### Version 1.2.0
-- Error Message in an uninitialised Sensor is called
+- Error Message if an uninitialised Sensor is called
 - Functions are now all available in english
