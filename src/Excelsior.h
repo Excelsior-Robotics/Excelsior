@@ -16,26 +16,42 @@
 using namespace std;
 
 //define what color is which number for the switch cases and also what variables are used here
-#define AUS          0
-#define WEISS        1
-#define ROT          2
-#define GRUEN        3
-#define BLAU         4
+#undef WHITE              //defined via the Adafruit_SSD1306 library as: SSD1306_WHITE, needs to be undefined to be redefined
+#define OFF          0
+#define WHITE        1
+#define RED          2
+#define GREEN        3
+#define BLUE         4
 #define CYAN         5
 #define MAGENTA      6
-#define GELB         7
-#define LICHT        8
-#define LICHT_NXT    9
-#define TAST_NXT    10
-#define TAST_EV3    11
-#define INFRAROT    12
-#define MOTOR_A     1
-#define MOTOR_B     2
-#define MOTOR_C     3
-#define MOTOR_D     4
-#define GYRO_X      17
-#define GYRO_Y      18
-#define GYRO_Z      19
+#define YELLOW       7
+#define LIGHT        8
+#define LIGHT_NXT    9
+#define TOUCH_NXT    10
+#define TOUCH_EV3    11
+#define INFRARED     12
+#define MOTOR_A      1
+#define MOTOR_B      2
+#define MOTOR_C      3
+#define MOTOR_D      4
+#define GYRO_X       17
+#define GYRO_Y       18
+#define GYRO_Z       19
+
+//--German definitions:
+#define AUS          OFF
+#define WEISS        WHITE
+#define ROT          RED
+#define GRUEN        GREEN
+#define BLAU         BLUE
+//#define CYAN         CYAN
+//#define MAGENTA      MAGENTA
+#define GELB         YELLOW
+#define LICHT        LIGHT
+#define LICHT_NXT    LIGHT_NXT
+#define TAST_NXT     TOUCH_NXT
+#define TAST_EV3     TOUCH_EV3
+#define INFRAROT     INFRARED
 
 typedef Array<int,10> _VecInt10;                      //datatype similar to c++ vector with a maximum of 10 indecies
 
@@ -45,37 +61,62 @@ class Excelsior
     Adafruit_SSD1306 display;
     Adafruit_BNO055 bno055;
     Excelsior();
-    void SensorSetup(int port, int type);
-    void LichtVerzoegerung(int delay);
-    void Motor(int port, int dir);
-    bool Knopf();
-    int  SensorWert(int port);
-    int  SensorWert(int port, int color);
-    int  SensorWert(int port, int color, bool percent);
-    int  GyroWert(int axis);
-    void GyroReset();
-    void GyroReset(int axis);
-    void GyroReset(int axis, bool toOriginal);
-    void DisplayAktualisieren();
-    void DA();
-    void DA(int type);
-    void DisplayAktualisieren(int type);
-    void DA(int (&layout)[8], String errorMessage);
-    void DisplayAktualisieren(int (&layout)[8], String errorMessage);
-    void DA(int layout1, int layout2, int layout3, int layout4, int layout5, int layout6, int layout7, int layout8);
-    void DisplayAktualisieren(int layout1, int layout2, int layout3, int layout4, int layout5, int layout6, int layout7, int layout8);
-    void DT(int x_, int y_, String s_);
-    void DisplayText(int x_, int y_, String s_);
-    void DR();
-    void DisplayRand();
+    void sensorSetup(int port, int type);
+    void lightDelay(int delay);
+    void motor(int port, int dir);
+    bool button();
+    int  sensorRead(int port);
+    int  sensorRead(int port, int color);
+    int  sensorRead(int port, int color, bool percent);
+    int  gyroRead(int axis);
+    void gyroReset()                                    {gyroReset(-1);};
+    void gyroReset(int axis)                            {gyroReset(axis,false);};
+    void gyroReset(int axis, bool toOriginal);
+    void dU()                                           {displayUpdate(0);};
+    void displayUpdate()                                {displayUpdate(0);};
+    void dU(int type)                                   {displayUpdate(type);};
+    void displayUpdate(int type); 
+    void dU(int (&layout)[8], String errorMessage)      {displayUpdate(layout,errorMessage);};
+    void displayUpdate(int (&layout)[8], String errorMessage);
+    void dU(int layout1, int layout2, int layout3, int layout4, int layout5, int layout6, int layout7, int layout8)             {displayUpdate(layout1,layout2,layout3,layout4,layout5,layout6,layout7,layout8);};
+    void displayUpdate(int layout1, int layout2, int layout3, int layout4, int layout5, int layout6, int layout7, int layout8);
+    void dT(int x_, int y_, String s_)                  {displayText(x_,y_,s_);};
+    void displayText(int x_, int y_, String s_);
+    void dB()                                           {displayBorder();};
+    void displayBorder();
+
+    //--German definitions:
+    void SensorSetup(int port, int type)                {sensorSetup(port,type);};
+    void LichtVerzoegerung(int delay)                   {lightDelay(delay);};
+    void Motor(int port, int dir)                       {motor(port,dir);};
+    bool Knopf()                                        {return button();};
+    int  SensorWert(int port)                           {return sensorRead(port);};
+    int  SensorWert(int port, int color)                {return sensorRead(port,color);};
+    int  SensorWert(int port, int color, bool percent)  {return sensorRead(port,color,percent);};
+    int  GyroWert(int axis)                             {return gyroRead(axis);};
+    void GyroReset()                                    {gyroReset();};
+    void GyroReset(int axis)                            {gyroReset(axis);};
+    void GyroReset(int axis, bool toOriginal)           {gyroReset(axis,toOriginal);};
+    void DisplayAktualisieren()                         {displayUpdate();};
+    void DA()                                           {dU();};
+    void DA(int type)                                   {dU(type);};
+    void DisplayAktualisieren(int type)                 {dU(type);};
+    void DA(int (&layout)[8], String errorMessage)      {dU(layout, errorMessage);};
+    void DisplayAktualisieren(int (&layout)[8], String errorMessage)                                                                      {dU(layout, errorMessage);};
+    void DA(int layout1, int layout2, int layout3, int layout4, int layout5, int layout6, int layout7, int layout8)                       {dU(layout1, layout2, layout3, layout4, layout5, layout6, layout7, layout8);};
+    void DisplayAktualisieren(int layout1, int layout2, int layout3, int layout4, int layout5, int layout6, int layout7, int layout8)     {dU(layout1, layout2, layout3, layout4, layout5, layout6, layout7, layout8);};
+    void DT(int x_, int y_, String s_)                  {dT(x_,y_,s_);};
+    void DisplayText(int x_, int y_, String s_)         {dT(x_,y_,s_);};
+    void DR()                                           {dB();};
+    void DisplayRand()                                  {dB();};
 
   private:
-    int  _LightSensorValue(int port, int color);
-    long _LightSensorPercent(int port, int color);
+    int  _lightSensorValue(int port, int color);
+    long _lightSensorPercent(int port, int color);
     void _getOrientation(double *vec);
-    void _DisplayError(int error);
-    void _DisplayError(int error, int input);
-    void _DisplayError(int error, _VecInt10 & variables);
+    void _displayError(int error)                       {_displayError(error,0);};
+    void _displayError(int error, int input);
+    void _displayError(int error, _VecInt10 & variables);
     //Teensy 4.1 Pinout
 
     const int _pinout[13][4] =  {{ 7, 6, 2}       //---Motors        (3x PWM)
