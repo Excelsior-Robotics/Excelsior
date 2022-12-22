@@ -2,7 +2,7 @@
 <img src="Logo/Logo_small.jpg" alt="Logo" width="200"/>
 
 ## Excelsior - an Arduino library to enable easy use of the Excelsior-Brick
-
+![version](https://badgen.net/github/release/Excelsior-Robotics/Excelsior)
 ### Version 1.0.1
 - Added Infrared-Sensor compatability
 - Screen now switches away from "Programm startet in 6 Sekunden" after the gyro finished calibrating
