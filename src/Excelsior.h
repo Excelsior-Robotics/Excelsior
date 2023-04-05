@@ -2,6 +2,7 @@
 #define Excelsior_h
 
 #include <Arduino.h>
+#include <limits.h>
 #include <Array.h>              // Used for dynamic length array, as in the error messages
 #include <Adafruit_GFX.h>       // Include core graphics library for the display
 #include <Adafruit_SSD1306.h>   // Include Adafruit_SSD1306 library to drive the display
@@ -17,26 +18,34 @@ using namespace std;
 
 //define what color is which number for the switch cases and also what variables are used here
 #undef WHITE              //defined via the Adafruit_SSD1306 library as: SSD1306_WHITE, needs to be undefined to be redefined
-#define OFF          0
-#define WHITE        1
-#define RED          2
-#define GREEN        3
-#define BLUE         4
-#define CYAN         5
-#define MAGENTA      6
-#define YELLOW       7
-#define LIGHT        8
-#define LIGHT_NXT    9
-#define TOUCH_NXT    10
-#define TOUCH_EV3    11
-#define INFRARED     12
-#define MOTOR_A      1
-#define MOTOR_B      2
-#define MOTOR_C      3
-#define MOTOR_D      4
-#define GYRO_X       17
-#define GYRO_Y       18
-#define GYRO_Z       19
+
+#define OFF          0      //COLORS      
+#define WHITE        1      //  .      
+#define RED          2      //  .      
+#define GREEN        3      //  .      
+#define BLUE         4      //  .      
+#define CYAN         5      //  .      
+#define MAGENTA      6      //  .      
+#define YELLOW       7      //COLORS      
+#define LIGHT        8      //IOTYPES / SENSORTYPES
+#define LIGHT_NXT    9      //        .
+#define TOUCH_NXT    10     //        .
+#define TOUCH_EV3    11     //        .
+#define INFRARED     12     //        .
+#define VCC          13     //        .
+#define GND          14     //        .
+#define DIGITAL_OUT  16     //        .
+#define ANALOG_OUT   17     //        .
+#define DIGITAL_IN   18     //        .
+#define ANALOG_IN    19     //IOTYPES / SENSORTYPES
+#define CUSTOM       20     //SENSORTYPES
+#define MOTOR_A      21     //MOTORS
+#define MOTOR_B      22     //  .
+#define MOTOR_C      23     //  .
+#define MOTOR_D      24     //MOTORS
+#define GYRO_X       25     //GYROSCOPE
+#define GYRO_Y       26     //  .
+#define GYRO_Z       27     //GYROSCOPE
 
 //--German definitions:
 #define AUS          OFF
@@ -62,11 +71,17 @@ class Excelsior
     Adafruit_BNO055 bno055;
     Excelsior();
     void sensorSetup(int port, int type);
+    void sensorSetup(int port, int pin, int IOtype);
+    void sensorSetup(int port, int IOtype1, int IOtype2, int IOtype3, int IOtype4);
+    void sensorSetup(int port, int (&IOtypes)[5]);
     void lightDelay(int delay);
     void motor(int port, int dir);
+    void motorOff();                                      
+    void motorOff(int port)                             {motor(port,0);};
     bool button();
+    void sensorWrite(int port, int pin, int signal);
     int  sensorRead(int port);
-    int  sensorRead(int port, int color);
+    int  sensorRead(int port, int colorOrPin);
     int  sensorRead(int port, int color, bool percent);
     int  gyroRead(int axis);
     void gyroReset()                                    {gyroReset(-1);};
@@ -88,6 +103,8 @@ class Excelsior
     //--German definitions:
     void SensorSetup(int port, int type)                {sensorSetup(port,type);};
     void LichtVerzoegerung(int delay)                   {lightDelay(delay);};
+    void MotorAus()                                     {motorOff();};
+    void MotorAus(int port)                             {motorOff(port);};
     void Motor(int port, int dir)                       {motor(port,dir);};
     bool Knopf()                                        {return button();};
     int  SensorWert(int port)                           {return sensorRead(port);};
@@ -124,25 +141,46 @@ class Excelsior
                                 ,{11,10, 4}       //      |
                                 ,{29,28, 5}       //      |
                                 ,{24,25,12}       //---Internal I2C  (SCL2,SDA2) + Button
-                                ,{13,14,15,23}    //1---Sensors       (3x Digital, 1x Analog)  //Blue, Yellow ,Black ,White
-                                ,{36,37,38,22}    //2      |
-                                ,{33,34,35,21}    //3      |
-                                ,{32,31,30,20}    //4      |
-                                ,{48,50,49,41}    //5      |
-                                ,{53,54,52,40}    //6      |
-                                ,{27,26,51,39}    //7      |
-                                ,{17,18,19,16}};  //8---Open I2C      (SDA1,SDA,SCL,SCL1)
+                                ,{23,15,14,13}    //1---Sensors       (3x Digital, 1x Analog)  //White, Black, Yellow, Blue
+                                ,{22,38,37,36}    //2     |
+                                ,{21,35,34,33}    //3     |
+                                ,{20,30,31,32}    //4     |
+                                ,{41,49,50,48}    //5     |
+                                ,{40,52,54,53}    //6     |
+                                ,{39,51,26,27}    //7     |
+                                ,{16,19,18,16}};  //8---Open I2C  (SCL1,SCL,SDA,SDA1)
 
-    static const int _sensShift = 4;                       //number needed to be added to port for mapping to the pinout
+    static const int _sensShift = 4;                       //number needed to be added to port for mapping to the pinout (counting starts at 1)
     static const int _maxSensors = 8;
+    static const int _maxSubSensors = 4;
     static const int _maxMotors = 4;
     static const int _DisplayX  = 10;
     static const int _DisplayY  =  4;
 
-    int _lightDelay = 1;                                  //not realy neccessary to have a higher number, as even 1 millisecond doesnt reduce the quality of the brightnesvalue
+    static const int _sensorPresetsLength = 5;
+    int _sensorPresets[_sensorPresetsLength][_maxSubSensors + 1] = {
+              //KABLECOLOR WHITE    BLACK   YELLOW  BLUE  (GREEN -> 5V | RED -> GND)
+              //PINS        1         2       5       6
+            {LIGHT,     INPUT_PULLUP, OUTPUT, OUTPUT, OUTPUT},     //LIGHT
+            {LIGHT_NXT, INPUT_PULLUP, GND   , VCC   , -1    },     //LIGHT_NXT
+            {TOUCH_NXT, INPUT_PULLUP, GND   , -1    , -1    },     //TOUCH_NXT
+            {TOUCH_EV3, -1          , -1    , -1    , INPUT },     //TOUCH_EV3
+            {INFRARED,  -1          , -1    , -1    , INPUT }      //INFRARED
+    };
+                                                        //stores the type of a sensor and if it hasn't been       {generall sensor type, subsensortype 1..4 or I/O 1..4}        
+    int _sensors[_maxSensors][_maxSubSensors + 1];      // initialized it will be -1 (only for external sensors)     {CUSTOM, LIGHT_NXT, TOUCH_NXT, TOUCH_NXT, INFRARED}
+                                                                                                                      //      {LIGHT_NXT, INPUT_PULLUP,GND,VCC,-1},
+    int _sensorValues[_maxSensors + 7][_maxSubSensors]; //stores the values of all sensors, the used gyroscope values the gyroscope offset values and the button
+                                                        //if a value is equal to INT_MAX, then it hasn't been used and shouldn't be displayed
 
-    int _sensors[_maxSensors];                            //stores the type of a sensor and if it hasn't been initialized it will be -1
-    int _sensorValues[_maxSensors + 7];                   //stores the values of all sensors, the used gyroscope values the gyroscope offset values and the button
+    //LIGHT       LIGHT_NXT       TOUCH_NXT       TOUCH_EV3      INFRARED      KABLECOLOR  (GREEN -> 5V | RED -> GND)
+    //Red         NULL            NULL            Signal         Signal        BLUE    6
+    //Green       Led             NULL            NULL                         YELLOW  5
+    //Blue        GND             GND             NULL                         BLACK   2
+    //Signal      Signal          Signal          NULL                         WHITE   1
+
+
+    int _lightDelay = 1;                                  //not realy neccessary to have a higher number, as even 1 millisecond doesnt reduce the quality of the brightnesvalue
     int _motorSpeeds[_maxMotors];                         //stores the speed / direction of each motor
 
     String _Display[_DisplayX][_DisplayY];                //stores what is supposed to be shown on the display
