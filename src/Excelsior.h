@@ -147,8 +147,8 @@ class Excelsior
                                 ,{20,30,31,32}    //4     |
                                 ,{41,49,50,48}    //5     |
                                 ,{40,52,54,53}    //6     |
-                                ,{39,51,26,27}    //7     |
-                                ,{16,19,18,16}};  //8---Open I2C  (SCL1,SCL,SDA,SDA1)
+                                ,{39,27,26,51}    //7     |
+                                ,{16,19,18,17}};  //8---Open I2C  (SCL1,SCL,SDA,SDA1)
 
     static const int _sensShift = 4;                       //number needed to be added to port for mapping to the pinout (counting starts at 1)
     static const int _maxSensors = 8;

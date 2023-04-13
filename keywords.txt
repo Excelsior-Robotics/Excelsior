@@ -28,18 +28,34 @@ displayBorder	KEYWORD2
 dB	KEYWORD2
 absolute	KEYWORD2
 
+sensorSetup KEYWORD2
 SensorSetup	KEYWORD2
+lightDelay  KEYWORD2
 LichtVerzoegerung	KEYWORD2
-Motor	KEYWORD2
-Knopf	KEYWORD2
+motor   KEYWORD2
+Motor   KEYWORD2
+motorOff    KEYWORD2
+MotorAus    KEYWORD2
+button  KEYWORD2
+Knopf   KEYWORD2
+sensorWrite KEYWORD2
+sensorRead  KEYWORD2
 SensorWert	KEYWORD2
+gyroRead    KEYWORD2
 GyroWert	KEYWORD2
+gyroReset   KEYWORD2
 GyroReset	KEYWORD2
+displayUpdate   KEYWORD2
 DisplayAktualisieren	KEYWORD2
+dU  KEYWORD2
 DA	KEYWORD2
+displayText	KEYWORD2
 DisplayText	KEYWORD2
+dT  KEYWORD2
 DT	KEYWORD2
+displayBorder   KEYWORD2
 DisplayRand	KEYWORD2
+dB  KEYWORD2
 DR	KEYWORD2
 
 
