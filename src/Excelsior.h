@@ -69,7 +69,9 @@ class Excelsior
   public:
     Adafruit_SSD1306 display;
     Adafruit_BNO055 bno055;
-    Excelsior();
+    String ExcelsiorVersion;                            //tracks the Version of the Excelsior, that is being used
+    Excelsior()                                         {Excelsior("A");};
+    Excelsior(String _ExcelsiorVersion);
     void sensorSetup(int port, int type);
     void sensorSetup(int port, int pin, int IOtype);
     void sensorSetup(int port, int IOtype1, int IOtype2, int IOtype3, int IOtype4);
@@ -134,6 +136,9 @@ class Excelsior
     void _displayError(int error)                       {_displayError(error,0);};
     void _displayError(int error, int input);
     void _displayError(int error, _VecInt10 & variables);
+    void _displaySSD1306Update(int (&layout)[8], String errorMessage);        //for the small display in the A Variants
+    void _displayILI9225Update(byte dataAndDisplayType, String errorMessage); //for the bigger display in the B Variants
+    void _displayTransmit(byte (&message)[32]);
     //Teensy 4.1 Pinout
 
     const int _pinout[13][4] =  {{ 7, 6, 2}       //---Motors        (3x PWM)
@@ -183,6 +188,8 @@ class Excelsior
     int _lightDelay = 1;                                  //not realy neccessary to have a higher number, as even 1 millisecond doesnt reduce the quality of the brightnesvalue
     int _motorSpeeds[_maxMotors];                         //stores the speed / direction of each motor
 
+    const int _ambassadorAddress = 4;                     //I2C Address of the Ambassador
+    const byte _protocolVersion = 1;                     //Version of the transmission protocol used to communicate to the ambassador
     String _Display[_DisplayX][_DisplayY];                //stores what is supposed to be shown on the display
     bool _displayOutline = false;                         //stores if the display-Outline is supposed to be displayed
     bool _errorTriangle = false;                          //stores if the error-Triangle is supposed to be displayed
