@@ -64,4 +64,5 @@
 ### Version 1.2.0
 - Error Message if an uninitialised Sensor is called
 - Functions are now all available in english
-
+### Version 1.2.1
+- Enabled multiple Sensors per SensorPort
