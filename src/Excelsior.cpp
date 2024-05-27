@@ -3,7 +3,7 @@
 
 using namespace std;
 //------SETUP------------------
-Excelsior::Excelsior() : display(128, 64, &Wire2) , bno055(55,0x28,&Wire2){
+Excelsior::Excelsior(String _ExcelsiorVersion) : display(128, 64, &Wire2) , bno055(55,0x28,&Wire2), ExcelsiorVersion(_ExcelsiorVersion){
   Serial.begin(9600);
   delay(1000);
   Serial.println("Hello-Excelsior");
@@ -57,7 +57,6 @@ void Excelsior::sensorSetup(int port, int type){
     default:  _displayError(-3,type); break;    //ERROR: SensorTYPE not defined
   }
 }
-
 
 void Excelsior::sensorSetup(int port, int pin, int IOtype){
   if(port < 1 || port > _maxSensors){
@@ -145,13 +144,14 @@ void Excelsior::lightDelay(int delay){
 void Excelsior::motor(int port, int dir){
   if(port < MOTOR_A || port >= (MOTOR_A + _maxMotors)){
     _displayError(-5,port);     //ERROR: MotorPORT not defined
-  }else if(dir < -255 || dir > 255){
+  }else if(dir < -100 || dir > 100){
     _displayError(-6,dir);      //ERROR: Speed not defined
   }else{
     _motorSpeeds[port - MOTOR_A] = dir;
+    dir = _invertMotors[port - MOTOR_A]? -dir:dir;                 //inverts the direction of the motor --> This is deliberatly not shown on the display!
     digitalWrite(_pinout[port - MOTOR_A][0], dir < 0? HIGH:LOW);   //if dir == 0, then both go LOW (motor off)
     digitalWrite(_pinout[port - MOTOR_A][1], dir > 0? HIGH:LOW);   //else if dir determines direction of rotation
-    analogWrite (_pinout[port - MOTOR_A][2], abs(dir));            //takes the absolute value to determine rotation speed
+    analogWrite (_pinout[port - MOTOR_A][2], abs(dir*2.55));       //takes the absolute value to determine rotation speed (times 2.55 to set 100 speed to the maximum output speed)
   }
 }
 
@@ -160,6 +160,38 @@ void Excelsior::motorOff(){                        //turns off all motors
     motorOff(MOTOR_A + i);
   }
 }
+
+void Excelsior::invertMotor(int motor1 = NULL, int motor2 = NULL, int motor3 = NULL, int motor4 = NULL){
+  int motors = {motor1,motor2,motor3,motor4};
+  if(motors[0] == NULL){      //if the first motor is NULL, all of them are NULL and therefore every motor gets switched
+   
+    for(int i = 0; i < _maxMotors; i++){
+      _invertMotors[i] = !_invertMotors[i];
+    }
+    return;
+  }
+
+  for(int i = 0; i < 4; i++){
+    if(motors[i] != NULL){
+      _invertMotors[motors[i] - MOTOR_A] = !_invertMotors[motors[i] - MOTOR_A];
+    }
+  }
+}
+
+void Excelsior::_motors(int val1 = NULL, int val2 = NULL, int val3 = NULL, int val4 = NULL, int val5 = NULL, bool signSwitch){   //possible versions: port, speed | port, port, speed | port, port, port, speed | port, port, port, port, speed --> All have the option to switch the sign for driving Fwd or Rev
+  int values = {val1,val2,val3,val4,val5};
+  int speed = NULL;
+  for(int i = 4; i > 0; i--){
+    if(speed == NULL){
+      if(values[i] != NULL){
+        speed = values[i];
+        speedSet = true;
+      }
+    }
+    motor(values[i],signSwitch? -speed: speed);  
+  }
+}
+
 
 //------WRITING TO CUSTOM SENSORS------
 
@@ -460,6 +492,33 @@ void Excelsior::gyroReset(int axis, bool toOriginal){          //Resets the Gyro
 }
 
 //------OLED DISPLAY------------------
+void Excelsior::displayText(int x_, int y_, String s_){
+  if(x_ >= 0 && x_ < _DisplayX && y_ >= 0 && y_ < _DisplayY){
+    _Display[x_][y_] = s_;
+  }else{
+    _errorVariables.push_back(x_);
+    _errorVariables.push_back(y_);
+    _displayError(-9,_errorVariables);
+  }
+}
+
+void Excelsior::displayBorder(){
+    _displayOutline = !_displayOutline;
+}
+
+void Excelsior::displayClear(){
+  displayTextClear();
+  displayUpdate(3);
+}
+
+void Excelsior::displayTextClear(){
+  for(int x = 0; x < _DisplayX; x++){
+    for(int y = 0; y < _DisplayY; y++){
+      _Display[x][y] = "";
+    }
+  }
+}
+
 void Excelsior::_displayError(int error, int input){
   _errorVariables.push_back(input);
   _displayError(error,_errorVariables);
@@ -493,6 +552,7 @@ void Excelsior::displayUpdate(int layout1, int layout2, int layout3, int layout4
 
 void Excelsior::displayUpdate(int type){     //definiert presets
   int layout[8];
+  bool clearDisplay = false;
   switch(type){
     case 0:                         //shows all sensors
       layout[0] = 1;
@@ -521,23 +581,35 @@ void Excelsior::displayUpdate(int type){     //definiert presets
       for(int i = 0; i < 8; i++){
         layout[i] = 0;
       }
+      clearDisplay = true;
       break;
 
     default:                        //default displays "Excelsior"
       layout[0] = -1;      break;
   }
-  displayUpdate(layout, "");
+  displayUpdate(layout, "", clearDisplay);
 }
 
-void Excelsior::displayUpdate(int (&layout)[8], String errorMessage){          //array of length 8 that determines the order of displayed entries (only takes arrays of this length)
+void Excelsior::displayUpdate(int (&layout)[8], String errorMessage, bool clearDisplay){   //selects which Display is used
+  byte dataAndDisplayType = 1;
+  if(ExcelsiorVersion == "B")
+    _displayILI9225Update(dataAndDisplayType, errorMessage, clearDisplay);
+  else                                                                  //if ExcelsiorVersion is A or something else
+    _displaySSD1306Update(layout, errorMessage, clearDisplay);
+}
+
+void Excelsior::_displaySSD1306Update(int (&layout)[8], String errorMessage, bool clearDisplay){          //array of length 8 that determines the order of displayed entries (only takes arrays of this length)
   display.clearDisplay();                                        // Clear the display so we can refresh
   display.setFont(&FreeMono9pt7b);                               // Set a custom font
-
+  
   if(errorMessage != ""){                                        //Display Error Message if errorMessage exists
     _errorTriangle = true;
     display.setTextSize(0);
     display.setCursor(0,10);
     display.println(errorMessage);
+
+  }else if(clearDisplay){                                        //if there is no error Message, then the display can be cleared
+    display.clearDisplay();
 
   }else if(layout[0] == -1){                                     //-1 at the first index displays logo
     display.drawBitmap(0,0, logo, 128, 64, SSD1306_WHITE);
@@ -550,7 +622,6 @@ void Excelsior::displayUpdate(int (&layout)[8], String errorMessage){          /
         display.println(_Display[x][y]);
       }
     }
-  
   }else{
     for(int i = 0; i < 8; i++){                                  //shows all sensorvalues -> if less then 8 ports, then the last three are the gyroscope values
       if(layout[i] == 0)
@@ -587,7 +658,7 @@ void Excelsior::displayUpdate(int (&layout)[8], String errorMessage){          /
   if(_displayOutline){                                           //displays a outline to show if the button is pressed
     display.drawRect(0, 0, 128, 64, SSD1306_WHITE);
   }
-  if(_errorTriangle){                                            //displays an error-simbol in the top right corner of the display to indicate, that an errorMessagehas been shown
+  if(_errorTriangle){                                            //displays an error-symbol in the top right corner of the display to indicate, that an errorMessagehas been shown
     display.setFont(&FreeMonoBold9pt7b);
     display.setTextSize(0);
     display.drawTriangle(127,14,113,14,120,0,SSD1306_WHITE);
@@ -599,16 +670,59 @@ void Excelsior::displayUpdate(int (&layout)[8], String errorMessage){          /
     delay(1000);        //shows the error Message for longer
 }
 
-void Excelsior::displayText(int x_, int y_, String s_){
-  if(x_ >= 0 && x_ < _DisplayX && y_ >= 0 && y_ < _DisplayY){
-    _Display[x_][y_] = s_;
-  }else{
-    _errorVariables.push_back(x_);
-    _errorVariables.push_back(y_);
-    _displayError(-9,_errorVariables);
+void Excelsior::_displayILI9225Update(byte dataAndDisplayType, String errorMessage, bool clearDisplay){
+  byte message[32];
+  if(_protocolVersion == 1){   //length = 28 bytes
+    byte line6 =  ((_motorSpeeds[0] < 0) << 7) +
+                  ((_motorSpeeds[1] < 0) << 6) + 
+                  ((_motorSpeeds[2] < 0) << 5) +                 
+                  ((_motorSpeeds[3] < 0) << 4) + 
+                   (_errorTriangle << 3)       +
+                   (clearDisplay << 2);
+    byte line15 = ((_sensorValues[0][0] < 0) << 7) +
+                  ((_sensorValues[1][0] < 0) << 6) + 
+                  ((_sensorValues[2][0] < 0) << 5) +                 
+                  ((_sensorValues[3][0] < 0) << 4) + 
+                  ((_sensorValues[4][0] < 0) << 3) + 
+                  ((_sensorValues[5][0] < 0) << 2) +                 
+                  ((_sensorValues[6][0] < 0) << 1) + 
+                   (_sensorValues[7][0] < 0); 
+
+
+    message[0] = _protocolVersion;
+    message[1] = dataAndDisplayType;
+    for(int i = 0; i < _maxMotors; i++)
+      message[2 + i] = abs(_motorSpeeds[i]);
+    message[6] = line6;
+    for(int i = 0; i < _maxSensors; i++)
+      message[7 + i] = abs(_sensorValues[i][0]);
+    message[15] = line15;
+    for(int i = 0; i < 3; i++){
+      for(int j = 0; j < 4; j++){
+        message[16 + i*4 + j] = _sensorValues[i + _maxSensors][0] >> ((3 - j)*8);
+      }
+    }
+
+    _displayTransmit(message);
+    if(errorMessage != ""){
+      /*
+      message[0] = _protocolVersion;
+      message[1] = 0;                 //ErrorMessage
+      message[2] = errorMessage.length();
+      for(unsigned int i = 0; i < errorMessage.length(); i++){
+        message[3 + i] = errorMessage.charAt(i);
+      }
+      */
+    }
   }
+  _clearScreen = false;
 }
 
-void Excelsior::displayBorder(){
-    _displayOutline = !_displayOutline;
+void Excelsior::_displayTransmit(byte (&message)[32]){
+  Wire.beginTransmission(_ambassadorAddress);   //sets to which I2C address the transmission goes
+  for(int i = 0; i < 28; i++){
+    Wire.write(message[i]);              // sends one byte    
+  }
+  Wire.endTransmission();    // stop transmitting
+  delay(100);                //DELAY that should be replaced by a timer
 }
