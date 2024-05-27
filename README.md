@@ -66,3 +66,14 @@
 - Functions are now all available in english
 ### Version 1.2.1
 - Enabled multiple Sensors per SensorPort
+### Version 1.2.3
+Added Functions:
+ - DisplayClear #19 #18
+ - DisplayTextClear #19 #18
+ - _motors #16
+ - motorFwd #16
+ - motorRev #16
+- inverMotor() #6
+- added OUT_A,B,C,D #15
+- motorOff()
+- added synonym setSensor #17
