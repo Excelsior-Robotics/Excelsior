@@ -10,6 +10,7 @@
 #include <Adafruit_BNO055.h>    // Needed for the Adafruit_BNO055 Gyrosensor
 #include <utility/imumaths.h>
 #include <Wire.h>
+#include <math.h>
 
 #include <Fonts/FreeMonoBold9pt7b.h>  // Add a custom font -> "!" from error-Triangle
 #include <Fonts/FreeMono9pt7b.h>      // Add a custom font -> other text
@@ -89,10 +90,11 @@ class Excelsior
     void setSensor(int port, int (&IOtypes)[5])                                           {sensorSetup(port,IOtypes);};
     void lightDelay(int delay);
     void motor(int port, int dir);
-    void motorFwd(int val1 = NULL, int val2 = NULL, int val3 = NULL, int val4 = NULL, int val5 = NULL)       {_motors(val1,val2,val3,val4,val5,false);};           
-    void motorRev(int val1 = NULL, int val2 = NULL, int val3 = NULL, int val4 = NULL, int val5 = NULL)       {_motors(val1,val2,val3,val4,val5,true);};
+    void motorFwd(int val1 = -1000, int val2 = -1000, int val3 = -1000, int val4 = -1000, int val5 = -1)       {_motors(val1,val2,val3,val4,val5,false);};            //-1000 is used as undefined in _motors();     
+    void motorRev(int val1 = -1000, int val2 = -1000, int val3 = -1000, int val4 = -1000, int val5 = -1)       {_motors(val1,val2,val3,val4,val5,true);};
     void motorOff();                                      
     void motorOff(int port)                             {motor(port,0);};
+    void invertMotor(int motor1 = -1, int motor2 = -1, int motor3 = -1, int motor4 = -1);
     bool button();
     void sensorWrite(int port, int pin, int signal);
     int  sensorRead(int port);
@@ -106,8 +108,8 @@ class Excelsior
     void displayUpdate()                                {displayUpdate(0);};
     void dU(int type)                                   {displayUpdate(type);};
     void displayUpdate(int type); 
-    void dU(int (&layout)[8], String errorMessage)      {displayUpdate(layout,errorMessage);};
-    void displayUpdate(int (&layout)[8], String errorMessage);
+    void dU(int (&layout)[8], String errorMessage, bool clearDisplay)      {displayUpdate(layout,errorMessage,clearDisplay);};
+    void displayUpdate(int (&layout)[8], String errorMessage, bool clearDisplay);
     void dU(int layout1, int layout2, int layout3, int layout4, int layout5, int layout6, int layout7, int layout8)             {displayUpdate(layout1,layout2,layout3,layout4,layout5,layout6,layout7,layout8);};
     void displayUpdate(int layout1, int layout2, int layout3, int layout4, int layout5, int layout6, int layout7, int layout8);
     void dT(int x_, int y_, String s_)                  {displayText(x_,y_,s_);};
@@ -120,7 +122,7 @@ class Excelsior
     void displayClear();
 
     //--German definitions:
-    void SensorSetup(int port, int type)                {sensorSetup(port,type);};
+    void SensorSetup(int port, int type)                                                  {sensorSetup(port,type);};
     void SensorSetup(int port, int pin, int IOtype)                                       {sensorSetup(port,pin,IOtype);};
     void SensorSetup(int port, int IOtype1, int IOtype2, int IOtype3, int IOtype4)        {sensorSetup(port,IOtype1,IOtype2,IOtype3,IOtype4);};
     void SensorSetup(int port, int (&IOtypes)[5])                                         {sensorSetup(port,IOtypes);};
@@ -130,10 +132,11 @@ class Excelsior
     void SetSensor(int port, int (&IOtypes)[5])                                           {sensorSetup(port,IOtypes);};
     void LichtVerzoegerung(int delay)                   {lightDelay(delay);};
     void Motor(int port, int dir)                       {motor(port,dir);};
-    void MotorFwd(int val1 = NULL, int val2 = NULL, int val3 = NULL, int val4 = NULL, int val5 = NULL)      {motorFwd(val1,val2,val3,val4,val5);}; 
-    void MotorRev(int val1 = NULL, int val2 = NULL, int val3 = NULL, int val4 = NULL, int val5 = NULL)      {motorRev(val1,val2,val3,val4,val5);}; 
+    void MotorFwd(int val1 = -1000, int val2 = -1000, int val3 = -1000, int val4 = -1000, int val5 = -1000)      {motorFwd(val1,val2,val3,val4,val5);}; 
+    void MotorRev(int val1 = -1000, int val2 = -1000, int val3 = -1000, int val4 = -1000, int val5 = -1000)      {motorRev(val1,val2,val3,val4,val5);}; 
     void MotorAus()                                     {motorOff();};
     void MotorAus(int port)                             {motorOff(port);};
+    void MotorInvertieren(int motor1 = -1, int motor2 = -1, int motor3 = -1, int motor4 = -1)       {invertMotor(motor1,motor2,motor3,motor4);};
     bool Knopf()                                        {return button();};
     int  SensorWert(int port)                           {return sensorRead(port);};
     int  SensorWert(int port, int color)                {return sensorRead(port,color);};
@@ -146,8 +149,8 @@ class Excelsior
     void DA()                                           {dU();};
     void DA(int type)                                   {dU(type);};
     void DisplayAktualisieren(int type)                 {dU(type);};
-    void DA(int (&layout)[8], String errorMessage)      {dU(layout, errorMessage);};
-    void DisplayAktualisieren(int (&layout)[8], String errorMessage)                                                                      {dU(layout, errorMessage);};
+    void DA(int (&layout)[8], String errorMessage, bool clearDisplay)                                                                     {dU(layout, errorMessage, clearDisplay);};
+    void DisplayAktualisieren(int (&layout)[8], String errorMessage, bool clearDisplay)                                                   {dU(layout, errorMessage, clearDisplay);};
     void DA(int layout1, int layout2, int layout3, int layout4, int layout5, int layout6, int layout7, int layout8)                       {dU(layout1, layout2, layout3, layout4, layout5, layout6, layout7, layout8);};
     void DisplayAktualisieren(int layout1, int layout2, int layout3, int layout4, int layout5, int layout6, int layout7, int layout8)     {dU(layout1, layout2, layout3, layout4, layout5, layout6, layout7, layout8);};
     void DT(int x_, int y_, String s_)                  {dT(x_,y_,s_);};
@@ -162,13 +165,13 @@ class Excelsior
   private:
     int  _lightSensorValue(int port, int color);
     long _lightSensorPercent(int port, int color);
-    void _motors(int val1 = NULL, int val2 = NULL, int val3 = NULL, int val4 = NULL, int val5 = NULL, bool signSwitch)
+    void _motors(int val1 = -1000, int val2 = -1000, int val3 = -1000, int val4 = -1000, int val5 = -1000, bool signSwitch = false);
     void _getOrientation(double *vec);
     void _displayError(int error)                       {_displayError(error,0);};
     void _displayError(int error, int input);
     void _displayError(int error, _VecInt10 & variables);
-    void _displaySSD1306Update(int (&layout)[8], String errorMessage);        //for the small display in the A Variants
-    void _displayILI9225Update(byte dataAndDisplayType, String errorMessage); //for the bigger display in the B Variants
+    void _displaySSD1306Update(int (&layout)[8], String errorMessage, bool clearDisplay);        //for the small display in the A Variants
+    void _displayILI9225Update(byte dataAndDisplayType, String errorMessage, bool clearDisplay); //for the bigger display in the B Variants
     void _displayTransmit(byte (&message)[32]);
     //Teensy 4.1 Pinout
 

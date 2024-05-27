@@ -161,9 +161,9 @@ void Excelsior::motorOff(){                        //turns off all motors
   }
 }
 
-void Excelsior::invertMotor(int motor1 = NULL, int motor2 = NULL, int motor3 = NULL, int motor4 = NULL){
-  int motors = {motor1,motor2,motor3,motor4};
-  if(motors[0] == NULL){      //if the first motor is NULL, all of them are NULL and therefore every motor gets switched
+void Excelsior::invertMotor(int motor1, int motor2, int motor3, int motor4){
+  int motors[] = {motor1,motor2,motor3,motor4};
+  if(motors[0] == -1){      //if the first motor is -1 (left empty), all of them are -1 and therefore every motor gets switched
    
     for(int i = 0; i < _maxMotors; i++){
       _invertMotors[i] = !_invertMotors[i];
@@ -172,23 +172,23 @@ void Excelsior::invertMotor(int motor1 = NULL, int motor2 = NULL, int motor3 = N
   }
 
   for(int i = 0; i < 4; i++){
-    if(motors[i] != NULL){
+    if(motors[i] != -1){
       _invertMotors[motors[i] - MOTOR_A] = !_invertMotors[motors[i] - MOTOR_A];
     }
   }
 }
 
-void Excelsior::_motors(int val1 = NULL, int val2 = NULL, int val3 = NULL, int val4 = NULL, int val5 = NULL, bool signSwitch){   //possible versions: port, speed | port, port, speed | port, port, port, speed | port, port, port, port, speed --> All have the option to switch the sign for driving Fwd or Rev
-  int values = {val1,val2,val3,val4,val5};
-  int speed = NULL;
+void Excelsior::_motors(int val1, int val2, int val3, int val4, int val5, bool signSwitch){   //possible versions: port, speed | port, port, speed | port, port, port, speed | port, port, port, port, speed --> All have the option to switch the sign for driving Fwd or Rev (Default Values are set in the header file)
+  int values[] = {val1,val2,val3,val4,val5};
+  int speed = -1000;                                //-1000 is here used as the undefined variable (a speed of -1000 will never be set)
   for(int i = 4; i > 0; i--){
-    if(speed == NULL){
-      if(values[i] != NULL){
+    if(speed == -1000){
+      if(values[i] != -1000){
         speed = values[i];
-        speedSet = true;
       }
-    }
+    }else{
     motor(values[i],signSwitch? -speed: speed);  
+    }
   }
 }
 
@@ -542,12 +542,12 @@ void Excelsior::_displayError(int error, _VecInt10 & variables){
     default:  errorMessage = (String) "   Nicht\ndefinierter\n   Fehler"; break;
   }
   _errorVariables.clear();
-  displayUpdate(layout,errorMessage);
+  displayUpdate(layout,errorMessage,false);
 }
 
 void Excelsior::displayUpdate(int layout1, int layout2, int layout3, int layout4, int layout5, int layout6, int layout7, int layout8){
   int layout[] =  {layout1,layout2,layout3,layout4,layout5,layout6,layout7,layout8};
-  displayUpdate(layout, "");
+  displayUpdate(layout, "",false);
 }
 
 void Excelsior::displayUpdate(int type){     //definiert presets
@@ -715,7 +715,6 @@ void Excelsior::_displayILI9225Update(byte dataAndDisplayType, String errorMessa
       */
     }
   }
-  _clearScreen = false;
 }
 
 void Excelsior::_displayTransmit(byte (&message)[32]){
