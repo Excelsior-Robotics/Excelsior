@@ -62,6 +62,13 @@ using namespace std;
 #define TAST_EV3     TOUCH_EV3
 #define INFRAROT     INFRARED
 
+//--Further definitions:
+#define OUT_A MOTOR_A
+#define OUT_B MOTOR_B
+#define OUT_C MOTOR_C
+#define OUT_D MOTOR_D
+
+
 typedef Array<int,10> _VecInt10;                      //datatype similar to c++ vector with a maximum of 10 indecies
 
 class Excelsior
@@ -76,8 +83,14 @@ class Excelsior
     void sensorSetup(int port, int pin, int IOtype);
     void sensorSetup(int port, int IOtype1, int IOtype2, int IOtype3, int IOtype4);
     void sensorSetup(int port, int (&IOtypes)[5]);
+    void setSensor(int port, int type)                                                    {sensorSetup(port,type);};
+    void setSensor(int port, int pin, int IOtype)                                         {sensorSetup(port,pin,IOtype);};
+    void setSensor(int port, int IOtype1, int IOtype2, int IOtype3, int IOtype4)          {sensorSetup(port,IOtype1,IOtype2,IOtype3,IOtype4);};
+    void setSensor(int port, int (&IOtypes)[5])                                           {sensorSetup(port,IOtypes);};
     void lightDelay(int delay);
     void motor(int port, int dir);
+    void motorFwd(int val1 = NULL, int val2 = NULL, int val3 = NULL, int val4 = NULL, int val5 = NULL)       {_motors(val1,val2,val3,val4,val5,false);};           
+    void motorRev(int val1 = NULL, int val2 = NULL, int val3 = NULL, int val4 = NULL, int val5 = NULL)       {_motors(val1,val2,val3,val4,val5,true);};
     void motorOff();                                      
     void motorOff(int port)                             {motor(port,0);};
     bool button();
@@ -99,15 +112,28 @@ class Excelsior
     void displayUpdate(int layout1, int layout2, int layout3, int layout4, int layout5, int layout6, int layout7, int layout8);
     void dT(int x_, int y_, String s_)                  {displayText(x_,y_,s_);};
     void displayText(int x_, int y_, String s_);
+    void dTC()                                          {displayTextClear();};
+    void displayTextClear();
     void dB()                                           {displayBorder();};
     void displayBorder();
+    void dC()                                           {displayClear();}; 
+    void displayClear();
 
     //--German definitions:
     void SensorSetup(int port, int type)                {sensorSetup(port,type);};
+    void SensorSetup(int port, int pin, int IOtype)                                       {sensorSetup(port,pin,IOtype);};
+    void SensorSetup(int port, int IOtype1, int IOtype2, int IOtype3, int IOtype4)        {sensorSetup(port,IOtype1,IOtype2,IOtype3,IOtype4);};
+    void SensorSetup(int port, int (&IOtypes)[5])                                         {sensorSetup(port,IOtypes);};
+    void SetSensor(int port, int type)                                                    {sensorSetup(port,type);};
+    void SetSensor(int port, int pin, int IOtype)                                         {sensorSetup(port,pin,IOtype);};
+    void SetSensor(int port, int IOtype1, int IOtype2, int IOtype3, int IOtype4)          {sensorSetup(port,IOtype1,IOtype2,IOtype3,IOtype4);};
+    void SetSensor(int port, int (&IOtypes)[5])                                           {sensorSetup(port,IOtypes);};
     void LichtVerzoegerung(int delay)                   {lightDelay(delay);};
+    void Motor(int port, int dir)                       {motor(port,dir);};
+    void MotorFwd(int val1 = NULL, int val2 = NULL, int val3 = NULL, int val4 = NULL, int val5 = NULL)      {motorFwd(val1,val2,val3,val4,val5);}; 
+    void MotorRev(int val1 = NULL, int val2 = NULL, int val3 = NULL, int val4 = NULL, int val5 = NULL)      {motorRev(val1,val2,val3,val4,val5);}; 
     void MotorAus()                                     {motorOff();};
     void MotorAus(int port)                             {motorOff(port);};
-    void Motor(int port, int dir)                       {motor(port,dir);};
     bool Knopf()                                        {return button();};
     int  SensorWert(int port)                           {return sensorRead(port);};
     int  SensorWert(int port, int color)                {return sensorRead(port,color);};
@@ -126,12 +152,17 @@ class Excelsior
     void DisplayAktualisieren(int layout1, int layout2, int layout3, int layout4, int layout5, int layout6, int layout7, int layout8)     {dU(layout1, layout2, layout3, layout4, layout5, layout6, layout7, layout8);};
     void DT(int x_, int y_, String s_)                  {dT(x_,y_,s_);};
     void DisplayText(int x_, int y_, String s_)         {dT(x_,y_,s_);};
+    void DTL()                                          {dTC();};
+    void DisplayTextLoeschen()                          {dTC();};  
     void DR()                                           {dB();};
     void DisplayRand()                                  {dB();};
+    void DL()                                           {dC();};
+    void DisplayLoeschen()                              {dC();};
 
   private:
     int  _lightSensorValue(int port, int color);
     long _lightSensorPercent(int port, int color);
+    void _motors(int val1 = NULL, int val2 = NULL, int val3 = NULL, int val4 = NULL, int val5 = NULL, bool signSwitch)
     void _getOrientation(double *vec);
     void _displayError(int error)                       {_displayError(error,0);};
     void _displayError(int error, int input);
@@ -187,6 +218,7 @@ class Excelsior
 
     int _lightDelay = 1;                                  //not realy neccessary to have a higher number, as even 1 millisecond doesnt reduce the quality of the brightnesvalue
     int _motorSpeeds[_maxMotors];                         //stores the speed / direction of each motor
+    bool _invertMotors[_maxMotors];                       //stores which motors should be inverted
 
     const int _ambassadorAddress = 4;                     //I2C Address of the Ambassador
     const byte _protocolVersion = 1;                     //Version of the transmission protocol used to communicate to the ambassador
