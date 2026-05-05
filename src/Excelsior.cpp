@@ -517,6 +517,7 @@ void Excelsior::displayTextClear(){
       _Display[x][y] = "";
     }
   }
+  displayUpdate(2);
 }
 
 void Excelsior::_displayError(int error, int input){
