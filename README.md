@@ -77,3 +77,22 @@ Added Functions:
 - added OUT_A,B,C,D #15
 - motorOff()
 - added synonym setSensor #17
+### Version 1.2.4
+Added Functions:
+displayClear (kept from 1.2.3)
+- displayTextClear (kept from 1.2.3)
+- servo (Servo driver for normal servos or contiuous rotation Servos, Supports 6 Servos, SERVO_P to SERVO_U)
+- colorRead (Color recognition function for new Sensor)
+- buzz (Buzzer functionality)
+- LED (Lights up the sensor in a given Color)
+
+Other Changes:
+- added new Sensortype COLOR
+- Corrected mistakes in the Pinout Array
+- deleted println for sensorRead
+- added displayTextClear after displaying Text on the screen, so no Overlaps happen
+- added a define for Black
+- all Functionvariants now have a German variant
+- Version is based on 1.2.1, thus support for the Big Screen is lost
+### Version 1.2.5
+- Update to colorRead function for better Color recognition
