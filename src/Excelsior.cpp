@@ -516,13 +516,13 @@ int Excelsior::colorRead(int port){
 		int _color_values[8] = {0,_colorSensorValue(port,WHITE),_colorSensorValue(port,RED),_colorSensorValue(port,GREEN),_colorSensorValue(port,BLUE),_colorSensorValue(port,CYAN),_colorSensorValue(port,MAGENTA),_colorSensorValue(port,YELLOW)};
 		_color_values[0] = _colorSensorValue(port,OFF);		//Read wit LED off last, so the overall ligth seems to be white, not yellow
 		
-		if (_color_values[RED] > 50 && _color_values[GREEN] > 50 && _color_values[BLUE] > 50 && _color_values[RED] < _color_values[GREEN] * 1.1 && _color_values[RED] < _color_values[BLUE] * 1.1 && _color_values[GREEN] < _color_values[RED] * 1.1 && _color_values[GREEN] < _color_values[BLUE] * 1.1 && _color_values[BLUE] < _color_values[RED] * 1.1 && _color_values[BLUE] < _color_values[GREEN] * 1.1)
+		if (_color_values[RED] > 30 && _color_values[GREEN] > 30 && _color_values[BLUE] > 30 && _color_values[RED] < _color_values[GREEN] && _color_values[RED] < _color_values[BLUE] && _color_values[GREEN] < _color_values[RED] +10 && _color_values[GREEN] < _color_values[BLUE] +5 && _color_values[BLUE] < _color_values[RED] +10 && _color_values[BLUE] < _color_values[GREEN] +5)
 		{
 			//_sensorValues[port - 1][0] = 'W';
 			_sensorValues[port - 1][0] = WHITE;
 			return WHITE;
 		}
-	    else if (_color_values[RED] < 35 && _color_values[GREEN] < 35 && _color_values[BLUE] < 35 && _color_values[RED] < _color_values[GREEN] + 6 && _color_values[RED] < _color_values[BLUE] + 6 && _color_values[GREEN] < _color_values[RED] + 6 && _color_values[GREEN] < _color_values[BLUE] + 6 && _color_values[BLUE] < _color_values[RED] + 6 && _color_values[BLUE] < _color_values[GREEN] + 6)
+	    else if (_color_values[RED] < 20 && _color_values[GREEN] < 20 && _color_values[BLUE] < 20 && _color_values[RED] < _color_values[GREEN] + 5 && _color_values[RED] < _color_values[BLUE] + 5 && _color_values[GREEN] < _color_values[RED] + 5 && _color_values[GREEN] < _color_values[BLUE] + 5 && _color_values[BLUE] < _color_values[RED] + 5 && _color_values[BLUE] < _color_values[GREEN] + 5)
 		{
 			//_sensorValues[port - 1][0] = 'S';
 			_sensorValues[port - 1][0] = BLACK;
@@ -534,19 +534,19 @@ int Excelsior::colorRead(int port){
 			_sensorValues[port - 1][0] = RED;
 			return RED;
 		}
-	    else if ((_color_values[GREEN] > _color_values[BLUE] * 1.2) && (_color_values[GREEN] > _color_values[RED] * 1.2) && _color_values[RED] < _color_values[BLUE] * 1.2 && _color_values[BLUE] < _color_values[RED] * 1.2)
+	    else if ((_color_values[GREEN] > _color_values[BLUE] * 1.2) && (_color_values[GREEN] > _color_values[RED] * 1.2) && _color_values[RED] < _color_values[BLUE] +4 && _color_values[BLUE] < _color_values[RED] +4)
 		{
 			//_sensorValues[port - 1][0] = 'G';
 			_sensorValues[port - 1][0] = GREEN;
 			return GREEN;
 		}
-	    else if ((_color_values[BLUE] > _color_values[GREEN] * 1.2) && (_color_values[BLUE] > _color_values[RED] * 1.3))  // && farbVektorAktuell.rotWert < farbVektorAktuell.gruenWert * 1.2 && farbVektorAktuell.gruenWert < farbVektorAktuell.rotWert * 1.1)
+	    else if ((_color_values[BLUE] > _color_values[GREEN] * 1.2) && (_color_values[BLUE] > _color_values[RED] * 1.3))  // && _color_values[RED] < _color_values[GREEN] * 1.2 && _color_values[GREEN] < _color_values[RED] * 1.1)
 		{
 			//_sensorValues[port - 1][0] = 'B';
 			_sensorValues[port - 1][0] = BLUE;
 			return BLUE;
 		}
-	    else if (_color_values[RED] > _color_values[BLUE] * 1.5 && _color_values[GREEN] > _color_values[BLUE] * 1.5 && _color_values[RED] < _color_values[GREEN] * 1.1 && _color_values[GREEN] < _color_values[RED] * 1.1)
+	    else if (_color_values[RED] > _color_values[BLUE] * 1.5 && _color_values[GREEN] > _color_values[BLUE] * 1.5 && _color_values[RED] < _color_values[GREEN] * 1.2 && _color_values[GREEN] < _color_values[RED] * 1.2)
 		{
 			//_sensorValues[port - 1][0] = 'Y';
 			_sensorValues[port - 1][0] = YELLOW;
