@@ -10,7 +10,8 @@
 #include <Adafruit_BNO055.h>    // Needed for the Adafruit_BNO055 Gyrosensor
 #include <utility/imumaths.h>
 #include <Wire.h>
-#include <math.h>
+
+#include "PWMServo.h"           // Needed for Servos
 
 #include <Fonts/FreeMonoBold9pt7b.h>  // Add a custom font -> "!" from error-Triangle
 #include <Fonts/FreeMono9pt7b.h>      // Add a custom font -> other text
@@ -19,37 +20,51 @@ using namespace std;
 
 //define what color is which number for the switch cases and also what variables are used here
 #undef WHITE              //defined via the Adafruit_SSD1306 library as: SSD1306_WHITE, needs to be undefined to be redefined
+#undef BLACK			  //defined via the Adafruit_SSD1306 library as: SSD1306_BLACK, needs to be undefined to be redefined
 
-#define OFF          0      //COLORS      
-#define WHITE        1      //  .      
-#define RED          2      //  .      
-#define GREEN        3      //  .      
-#define BLUE         4      //  .      
-#define CYAN         5      //  .      
-#define MAGENTA      6      //  .      
-#define YELLOW       7      //COLORS      
-#define LIGHT        8      //IOTYPES / SENSORTYPES
-#define LIGHT_NXT    9      //        .
-#define TOUCH_NXT    10     //        .
-#define TOUCH_EV3    11     //        .
-#define INFRARED     12     //        .
-#define VCC          13     //        .
-#define GND          14     //        .
-#define DIGITAL_OUT  16     //        .
-#define ANALOG_OUT   17     //        .
-#define DIGITAL_IN   18     //        .
-#define ANALOG_IN    19     //IOTYPES / SENSORTYPES
-#define CUSTOM       20     //SENSORTYPES
-#define MOTOR_A      21     //MOTORS
-#define MOTOR_B      22     //  .
-#define MOTOR_C      23     //  .
-#define MOTOR_D      24     //MOTORS
-#define GYRO_X       25     //GYROSCOPE
-#define GYRO_Y       26     //  .
-#define GYRO_Z       27     //GYROSCOPE
+#define OFF          0       //COLORS   
+#define BLACK        OFF     //  .    
+#define WHITE        1       //  .      
+#define RED          2       //  .      
+#define GREEN        3       //  .      
+#define BLUE         4       //  .      
+#define CYAN         5       //  .      
+#define MAGENTA      6       //  .      
+#define YELLOW       7       //COLORS      
+#define LIGHT        8       //IOTYPES / SENSORTYPES
+#define LIGHT_NXT    9       //        .
+#define TOUCH_NXT    10      //        .
+#define TOUCH_EV3    11      //        .
+#define INFRARED     12      //        .
+#define COLOR        13      //        .
+#define ULTRASONIC	 14		 //        .
+#define VCC          15      //        .
+#define GND          16      //        .
+#define DIGITAL_OUT  17      //        .
+#define ANALOG_OUT   18      //        .
+#define DIGITAL_IN   19      //        .
+#define ANALOG_IN    20      //IOTYPES / SENSORTYPES
+#define CUSTOM       21      //SENSORTYPES
+#define MOTOR_A      22      //MOTORS
+#define MOTOR_B      23      //  .
+#define MOTOR_C      24      //  .
+#define MOTOR_D      25      //MOTORS
+#define GYRO_X       26      //GYROSCOPE
+#define GYRO_Y       27      //  .
+#define GYRO_Z       28      //GYROSCOPE
+
+#define SERVO_P      29      //SERVOS
+#define SERVO_Q      30      //  .
+#define SERVO_R      31      //  .
+#define SERVO_S      32      //  .
+#define SERVO_T      33      //  .
+#define SERVO_U      34       //SERVOS
+#define L_360        INT_MIN //SERVO TYPE
+#define R_360        INT_MAX //SERVO TYPE
 
 //--German definitions:
 #define AUS          OFF
+#define SCHWARZ      BLACK
 #define WEISS        WHITE
 #define ROT          RED
 #define GRUEN        GREEN
@@ -62,13 +77,9 @@ using namespace std;
 #define TAST_NXT     TOUCH_NXT
 #define TAST_EV3     TOUCH_EV3
 #define INFRAROT     INFRARED
-
-//--Further definitions:
-#define OUT_A MOTOR_A
-#define OUT_B MOTOR_B
-#define OUT_C MOTOR_C
-#define OUT_D MOTOR_D
-
+#define FARBE        COLOR
+#define ULTRASCHALL	 ULTRASONIC
+//#define GRAD360		 CONTINUOUS
 
 typedef Array<int,10> _VecInt10;                      //datatype similar to c++ vector with a maximum of 10 indecies
 
@@ -77,29 +88,23 @@ class Excelsior
   public:
     Adafruit_SSD1306 display;
     Adafruit_BNO055 bno055;
-    String ExcelsiorVersion;                            //tracks the Version of the Excelsior, that is being used
-    Excelsior()                                         {Excelsior("A");};
-    Excelsior(String _ExcelsiorVersion);
+    Excelsior();
     void sensorSetup(int port, int type);
     void sensorSetup(int port, int pin, int IOtype);
     void sensorSetup(int port, int IOtype1, int IOtype2, int IOtype3, int IOtype4);
     void sensorSetup(int port, int (&IOtypes)[5]);
-    void setSensor(int port, int type)                                                    {sensorSetup(port,type);};
-    void setSensor(int port, int pin, int IOtype)                                         {sensorSetup(port,pin,IOtype);};
-    void setSensor(int port, int IOtype1, int IOtype2, int IOtype3, int IOtype4)          {sensorSetup(port,IOtype1,IOtype2,IOtype3,IOtype4);};
-    void setSensor(int port, int (&IOtypes)[5])                                           {sensorSetup(port,IOtypes);};
     void lightDelay(int delay);
     void motor(int port, int dir);
-    void motorFwd(int val1 = -1000, int val2 = -1000, int val3 = -1000, int val4 = -1000, int val5 = -1)       {_motors(val1,val2,val3,val4,val5,false);};            //-1000 is used as undefined in _motors();     
-    void motorRev(int val1 = -1000, int val2 = -1000, int val3 = -1000, int val4 = -1000, int val5 = -1)       {_motors(val1,val2,val3,val4,val5,true);};
     void motorOff();                                      
     void motorOff(int port)                             {motor(port,0);};
-    void invertMotor(int motor1 = -1, int motor2 = -1, int motor3 = -1, int motor4 = -1);
+	void servoSetup(int port, int type);
+	void servo(int port, int degreeOrSpeed);
     bool button();
     void sensorWrite(int port, int pin, int signal);
     int  sensorRead(int port);
     int  sensorRead(int port, int colorOrPin);
     int  sensorRead(int port, int color, bool percent);
+	int  colorRead(int port);
     int  gyroRead(int axis);
     void gyroReset()                                    {gyroReset(-1);};
     void gyroReset(int axis)                            {gyroReset(axis,false);};
@@ -108,39 +113,39 @@ class Excelsior
     void displayUpdate()                                {displayUpdate(0);};
     void dU(int type)                                   {displayUpdate(type);};
     void displayUpdate(int type); 
-    void dU(int (&layout)[8], String errorMessage, bool clearDisplay)      {displayUpdate(layout,errorMessage,clearDisplay);};
-    void displayUpdate(int (&layout)[8], String errorMessage, bool clearDisplay);
+    void dU(int (&layout)[8], String errorMessage)      {displayUpdate(layout,errorMessage);};
+    void displayUpdate(int (&layout)[8], String errorMessage);
     void dU(int layout1, int layout2, int layout3, int layout4, int layout5, int layout6, int layout7, int layout8)             {displayUpdate(layout1,layout2,layout3,layout4,layout5,layout6,layout7,layout8);};
     void displayUpdate(int layout1, int layout2, int layout3, int layout4, int layout5, int layout6, int layout7, int layout8);
     void dT(int x_, int y_, String s_)                  {displayText(x_,y_,s_);};
     void displayText(int x_, int y_, String s_);
-    void dTC()                                          {displayTextClear();};
-    void displayTextClear();
     void dB()                                           {displayBorder();};
     void displayBorder();
-    void dC()                                           {displayClear();}; 
-    void displayClear();
+	void displayClear();
+	void displayTextClear();
+	void buzz(int time);
+	void buzz(int time, int frequency);
+	void Buzz(int time) { buzz(time); };
+	void Buzz(int time, int frequency) { buzz(time, frequency); };
+	void LED(int port, int color);
 
     //--German definitions:
-    void SensorSetup(int port, int type)                                                  {sensorSetup(port,type);};
-    void SensorSetup(int port, int pin, int IOtype)                                       {sensorSetup(port,pin,IOtype);};
-    void SensorSetup(int port, int IOtype1, int IOtype2, int IOtype3, int IOtype4)        {sensorSetup(port,IOtype1,IOtype2,IOtype3,IOtype4);};
-    void SensorSetup(int port, int (&IOtypes)[5])                                         {sensorSetup(port,IOtypes);};
-    void SetSensor(int port, int type)                                                    {sensorSetup(port,type);};
-    void SetSensor(int port, int pin, int IOtype)                                         {sensorSetup(port,pin,IOtype);};
-    void SetSensor(int port, int IOtype1, int IOtype2, int IOtype3, int IOtype4)          {sensorSetup(port,IOtype1,IOtype2,IOtype3,IOtype4);};
-    void SetSensor(int port, int (&IOtypes)[5])                                           {sensorSetup(port,IOtypes);};
+    void SensorSetup(int port, int type)                							{sensorSetup(port,type);};
+	void SensorSetup(int port, int pin, int IOtype)      							{sensorSetup(port,pin,IOtype);};
+	void SensorSetup(int port, int IOtype1, int IOtype2, int IOtype3, int IOtype4)	{sensorSetup(port,IOtype1,IOtype2,IOtype3,IOtype4);};
+	void SensorSetup(int port, int (&IOtypes)[5])        							{sensorSetup(port,IOtypes);};
     void LichtVerzoegerung(int delay)                   {lightDelay(delay);};
-    void Motor(int port, int dir)                       {motor(port,dir);};
-    void MotorFwd(int val1 = -1000, int val2 = -1000, int val3 = -1000, int val4 = -1000, int val5 = -1000)      {motorFwd(val1,val2,val3,val4,val5);}; 
-    void MotorRev(int val1 = -1000, int val2 = -1000, int val3 = -1000, int val4 = -1000, int val5 = -1000)      {motorRev(val1,val2,val3,val4,val5);}; 
     void MotorAus()                                     {motorOff();};
     void MotorAus(int port)                             {motorOff(port);};
-    void MotorInvertieren(int motor1 = -1, int motor2 = -1, int motor3 = -1, int motor4 = -1)       {invertMotor(motor1,motor2,motor3,motor4);};
+    void Motor(int port, int dir)                       {motor(port,dir);};
+	void ServoSetup(int port, int type)                 {servoSetup(port,type);};
+	void Servo(int port, int degreeOrSpeed)             {servo(port,degreeOrSpeed);};
     bool Knopf()                                        {return button();};
+	void SensorSchreiben(int port, int pin, int signal) {sensorWrite(port,pin,signal);};
     int  SensorWert(int port)                           {return sensorRead(port);};
     int  SensorWert(int port, int color)                {return sensorRead(port,color);};
     int  SensorWert(int port, int color, bool percent)  {return sensorRead(port,color,percent);};
+	int  FarbWert(int port)                             {return colorRead(port);};
     int  GyroWert(int axis)                             {return gyroRead(axis);};
     void GyroReset()                                    {gyroReset();};
     void GyroReset(int axis)                            {gyroReset(axis);};
@@ -149,45 +154,43 @@ class Excelsior
     void DA()                                           {dU();};
     void DA(int type)                                   {dU(type);};
     void DisplayAktualisieren(int type)                 {dU(type);};
-    void DA(int (&layout)[8], String errorMessage, bool clearDisplay)                                                                     {dU(layout, errorMessage, clearDisplay);};
-    void DisplayAktualisieren(int (&layout)[8], String errorMessage, bool clearDisplay)                                                   {dU(layout, errorMessage, clearDisplay);};
+    void DA(int (&layout)[8], String errorMessage)      {dU(layout, errorMessage);};
+    void DisplayAktualisieren(int (&layout)[8], String errorMessage)                                                                      {dU(layout, errorMessage);};
     void DA(int layout1, int layout2, int layout3, int layout4, int layout5, int layout6, int layout7, int layout8)                       {dU(layout1, layout2, layout3, layout4, layout5, layout6, layout7, layout8);};
     void DisplayAktualisieren(int layout1, int layout2, int layout3, int layout4, int layout5, int layout6, int layout7, int layout8)     {dU(layout1, layout2, layout3, layout4, layout5, layout6, layout7, layout8);};
     void DT(int x_, int y_, String s_)                  {dT(x_,y_,s_);};
     void DisplayText(int x_, int y_, String s_)         {dT(x_,y_,s_);};
-    void DTL()                                          {dTC();};
-    void DisplayTextLoeschen()                          {dTC();};  
     void DR()                                           {dB();};
     void DisplayRand()                                  {dB();};
-    void DL()                                           {dC();};
-    void DisplayLoeschen()                              {dC();};
+	void DisplayLoeschen()                              {displayClear();};
+	void DisplayTextLoeschen()                          {displayTextClear();};
 
   private:
     int  _lightSensorValue(int port, int color);
+	int  _colorSensorValue(int port, int color);
     long _lightSensorPercent(int port, int color);
-    void _motors(int val1 = -1000, int val2 = -1000, int val3 = -1000, int val4 = -1000, int val5 = -1000, bool signSwitch = false);
     void _getOrientation(double *vec);
     void _displayError(int error)                       {_displayError(error,0);};
     void _displayError(int error, int input);
     void _displayError(int error, _VecInt10 & variables);
-    void _displaySSD1306Update(int (&layout)[8], String errorMessage, bool clearDisplay);        //for the small display in the A Variants
-    void _displayILI9225Update(byte dataAndDisplayType, String errorMessage, bool clearDisplay); //for the bigger display in the B Variants
-    void _displayTransmit(byte (&message)[32]);
+	long _colorSensorPercent(int port, int color);
     //Teensy 4.1 Pinout
-
+//Q, P, R
+//T, U, S
     const int _pinout[13][4] =  {{ 7, 6, 2}       //---Motors        (3x PWM)
                                 ,{ 8, 9, 3}       //      |
                                 ,{11,10, 4}       //      |
                                 ,{29,28, 5}       //      |
-                                ,{24,25,12}       //---Internal I2C  (SCL2,SDA2) + Button
-                                ,{23,15,14,13}    //1---Sensors       (3x Digital, 1x Analog)  //White, Black, Yellow, Blue
-                                ,{22,38,37,36}    //2     |
-                                ,{21,35,34,33}    //3     |
-                                ,{20,30,31,32}    //4     |
+                                ,{24,25,12, 1}       //---Internal I2C  (SCL2,SDA2) + Button + Buzzer
+                                ,{23,13,14,15}    //1---Sensors       (3x Digital, 1x Analog)  //White, Black, Yellow, Blue
+                                ,{22,36,37,38}    //2     |
+                                ,{21,33,34,35}    //3     |
+                                ,{20,32,31,30}    //4     |
                                 ,{41,49,50,48}    //5     |
                                 ,{40,52,54,53}    //6     |
-                                ,{39,27,26,51}    //7     |
-                                ,{16,19,18,17}};  //8---Open I2C  (SCL1,SCL,SDA,SDA1)
+                                ,{39,51,26,27}    //7     |
+                                ,{16,17,18,19}};  //8---Open I2C  (SCL1,SCL,SDA,SDA1)
+								
 
     static const int _sensShift = 4;                       //number needed to be added to port for mapping to the pinout (counting starts at 1)
     static const int _maxSensors = 8;
@@ -196,7 +199,7 @@ class Excelsior
     static const int _DisplayX  = 10;
     static const int _DisplayY  =  4;
 
-    static const int _sensorPresetsLength = 5;
+    static const int _sensorPresetsLength = 6;
     int _sensorPresets[_sensorPresetsLength][_maxSubSensors + 1] = {
               //KABLECOLOR WHITE    BLACK   YELLOW  BLUE  (GREEN -> 5V | RED -> GND)
               //PINS        1         2       5       6
@@ -204,7 +207,8 @@ class Excelsior
             {LIGHT_NXT, INPUT_PULLUP, GND   , VCC   , -1    },     //LIGHT_NXT
             {TOUCH_NXT, INPUT_PULLUP, GND   , -1    , -1    },     //TOUCH_NXT
             {TOUCH_EV3, -1          , -1    , -1    , INPUT },     //TOUCH_EV3
-            {INFRARED,  -1          , -1    , -1    , INPUT }      //INFRARED
+            {INFRARED,  -1          , -1    , -1    , INPUT },     //INFRARED
+            {COLOR,     INPUT_PULLUP, OUTPUT, OUTPUT, OUTPUT}      //COLOR
     };
                                                         //stores the type of a sensor and if it hasn't been       {generall sensor type, subsensortype 1..4 or I/O 1..4}        
     int _sensors[_maxSensors][_maxSubSensors + 1];      // initialized it will be -1 (only for external sensors)     {CUSTOM, LIGHT_NXT, TOUCH_NXT, TOUCH_NXT, INFRARED}
@@ -221,14 +225,22 @@ class Excelsior
 
     int _lightDelay = 1;                                  //not realy neccessary to have a higher number, as even 1 millisecond doesnt reduce the quality of the brightnesvalue
     int _motorSpeeds[_maxMotors];                         //stores the speed / direction of each motor
-    bool _invertMotors[_maxMotors];                       //stores which motors should be inverted
+    int _servoValues[6];                                  //stores the speed / direction / degree of each servo
 
-    const int _ambassadorAddress = 4;                     //I2C Address of the Ambassador
-    const byte _protocolVersion = 1;                     //Version of the transmission protocol used to communicate to the ambassador
     String _Display[_DisplayX][_DisplayY];                //stores what is supposed to be shown on the display
     bool _displayOutline = false;                         //stores if the display-Outline is supposed to be displayed
     bool _errorTriangle = false;                          //stores if the error-Triangle is supposed to be displayed
     _VecInt10 _errorVariables;
+	
+	//Define Servos
+	PWMServo _Servo_P;
+	PWMServo _Servo_Q;
+	PWMServo _Servo_R;
+	PWMServo _Servo_S;
+	PWMServo _Servo_T;
+	PWMServo _Servo_U;
+	const int _servoPinout[6] = { 6, 7, 2, 3, 8, 9};
+	int _servoTypes[6] = { -1,-1,-1,-1,-1,-1};
 };
 
 
